@@ -16,116 +16,189 @@
             user-select: none;
             > .chunk {
                 position: absolute;
-                width: 256px;
-                height: 256px;
+                width: 128px;
+                height: 128px;
                 display: grid;
                 grid-template-columns: repeat(16, 1fr);
                 grid-template-rows: repeat(16, 1fr);
                 background: #ccc;
-                > .block {
-                }
             }
         }
     </style>
     <script>
         let pos = { x: 0, y: 0 };
         let mouse_pos = { x: 0, y: 0 };
-        let zoom = 1.0;
+        let zoom = 0.5;
         let prev_mouse_pos = null;
-            // チャンク管理用
-            const chunkSize = 16;
-            const chunkPixel = 256;
-            const loadedChunks = new Map(); // key: 'x_y', value: {element, data}
+        const chunkSize = 16;
+        const chunkPixel = 128;
+        const loadedChunks = new Map();
 
-            function getVisibleChunkRange() {
-                const map = document.getElementById('map');
-                const rect = map.getBoundingClientRect();
-                // 画面サイズ取得
-                const vw = window.innerWidth;
-                const vh = window.innerHeight;
-                // mapの中心座標（画面上）
-                const centerX = vw / 2 - pos.x;
-                const centerY = vh / 2 - pos.y;
-                // 表示範囲（map座標系）
-                const left = (-pos.x - vw / 2) / zoom;
-                const top = (-pos.y - vh / 2) / zoom;
-                const right = (vw / 2 - pos.x) / zoom;
-                const bottom = (vh / 2 - pos.y) / zoom;
-                // チャンク番号範囲
-                const chunkLeft = Math.floor(left / chunkPixel);
-                const chunkRight = Math.floor(right / chunkPixel);
-                const chunkTop = Math.floor(top / chunkPixel);
-                const chunkBottom = Math.floor(bottom / chunkPixel);
-                return {
-                    left: chunkLeft,
-                    right: chunkRight,
-                    top: chunkTop,
-                    bottom: chunkBottom
-                };
-            }
+        const colors = {
+            WHITE_WOOL: "#F9FFFE",
+            ORANGE_WOOL: "#F9801D",
+            MAGENTA_WOOL: "#C74EBD",
+            LIGHT_BLUE_WOOL: "#3AB3DA",
+            YELLOW_WOOL: "#FED83D",
+            LIME_WOOL: "#80C71F",
+            PINK_WOOL: "#F38BAA",
+            GRAY_WOOL: "#474F52",
+            LIGHT_GRAY_WOOL: "#9D9D97",
+            CYAN_WOOL: "#169C9C",
+            PURPLE_WOOL: "#8932B8",
+            BLUE_WOOL: "#3C44AA",
+            BROWN_WOOL: "#835432",
+            GREEN_WOOL: "#5E7C16",
+            RED_WOOL: "#B02E26",
+            BLACK_WOOL: "#1D1D21",
+            WHITE_CONCRETE_POWDER: "#E7E7E7",
+            ORANGE_CONCRETE_POWDER: "#F2B07A",
+            MAGENTA_CONCRETE_POWDER: "#B95DAF",
+            LIGHT_BLUE_CONCRETE_POWDER: "#8395A7",
+            YELLOW_CONCRETE_POWDER: "#E7E23A",
+            LIME_CONCRETE_POWDER: "#A7E22E",
+            PINK_CONCRETE_POWDER: "#E7A7B7",
+            GRAY_CONCRETE_POWDER: "#6D6D6D",
+            LIGHT_GRAY_CONCRETE_POWDER: "#BFBFBF",
+            CYAN_CONCRETE_POWDER: "#4AABAB",
+            PURPLE_CONCRETE_POWDER: "#A24D8E",
+            BLUE_CONCRETE_POWDER: "#4A6CD4",
+            BROWN_CONCRETE_POWDER: "#A87C5A",
+            GREEN_CONCRETE_POWDER: "#7CA15C",
+            RED_CONCRETE_POWDER: "#D36C6C",
+            BLACK_CONCRETE_POWDER: "#2B2B2B",
+            WHITE_CONCRETE: "#F4F4F4",
+            ORANGE_CONCRETE: "#FFA400",
+            MAGENTA_CONCRETE: "#B24CD8",
+            LIGHT_BLUE_CONCRETE: "#6699D8",
+            YELLOW_CONCRETE: "#FED83D",
+            LIME_CONCRETE: "#80C71F",
+            PINK_CONCRETE: "#FFB4B4",
+            GRAY_CONCRETE: "#474F52",
+            LIGHT_GRAY_CONCRETE: "#9D9D97",
+            CYAN_CONCRETE: "#169C9C",
+            PURPLE_CONCRETE: "#8932B8",
+            BLUE_CONCRETE: "#3C44AA",
+            BROWN_CONCRETE: "#835432",
+            GREEN_CONCRETE: "#5E7C16",
+            RED_CONCRETE: "#B02E26",
+            BLACK_CONCRETE: "#1D1D21",
+            TERRACOTTA: "#A97A65",
+            WHITE_TERRACOTTA: "#D1B1A1",
+            ORANGE_TERRACOTTA: "#A35422",
+            MAGENTA_TERRACOTTA: "#8E3C7B",
+            LIGHT_BLUE_TERRACOTTA: "#6C6EA3",
+            YELLOW_TERRACOTTA: "#D0A53C",
+            LIME_TERRACOTTA: "#5A7A3C",
+            PINK_TERRACOTTA: "#B76A7A",
+            GRAY_TERRACOTTA: "#4C4842",
+            LIGHT_GRAY_TERRACOTTA: "#9D8B7A",
+            CYAN_TERRACOTTA: "#4A686A",
+            PURPLE_TERRACOTTA: "#7C3F7C",
+            BLUE_TERRACOTTA: "#3C3F7C",
+            BROWN_TERRACOTTA: "#4C3222",
+            GREEN_TERRACOTTA: "#4C7A3C",
+            RED_TERRACOTTA: "#8E3C3C",
+            BLACK_TERRACOTTA: "#251610",
+            BLACK_GLAZED_TERRACOTTA: "#1D1D21",
+            BLUE_GLAZED_TERRACOTTA: "#3C44AA",
+            BROWN_GLAZED_TERRACOTTA: "#835432",
+            CYAN_GLAZED_TERRACOTTA: "#169C9C",
+            GRAY_GLAZED_TERRACOTTA: "#474F52",
+            GREEN_GLAZED_TERRACOTTA: "#5E7C16",
+            LIGHT_BLUE_GLAZED_TERRACOTTA: "#3AB3DA",
+            LIGHT_GRAY_GLAZED_TERRACOTTA: "#9D9D97",
+            LIME_GLAZED_TERRACOTTA: "#80C71F",
+            MAGENTA_GLAZED_TERRACOTTA: "#C74EBD",
+            ORANGE_GLAZED_TERRACOTTA: "#F9801D",
+            PINK_GLAZED_TERRACOTTA: "#F38BAA",
+            PURPLE_GLAZED_TERRACOTTA: "#8932B8",
+            RED_GLAZED_TERRACOTTA: "#B02E26",
+            WHITE_GLAZED_TERRACOTTA: "#F9FFFE",
+            YELLOW_GLAZED_TERRACOTTA: "#FED83D"
+        };
 
-            async function loadChunk(x, y) {
-                const key = `${x}_${y}`;
-                if (loadedChunks.has(key)) return;
-                const map = document.getElementById('map');
-                // チャンク要素作成
-                const chunkEl = document.createElement('div');
-                chunkEl.className = 'chunk';
-                chunkEl.style.left = `${x * chunkPixel}px`;
-                chunkEl.style.top = `${y * chunkPixel}px`;
-                chunkEl.dataset.chunk = key;
-                map.appendChild(chunkEl);
-                loadedChunks.set(key, { element: chunkEl, data: null });
-                // fetch
-                try {
-                    const res = await fetch(`/mapfiles/${key}.json`);
-                    if (!res.ok) throw new Error('not found');
-                    const data = await res.json();
-                    loadedChunks.get(key).data = data;
-                    // 描画
-                    for (let by = 0; by < chunkSize; by++) {
-                        for (let bx = 0; bx < chunkSize; bx++) {
-                            const block = document.createElement('div');
-                            block.className = 'block';
-                            block.style.gridColumn = bx + 1;
-                            block.style.gridRow = by + 1;
-                            // データに応じて色など変更（例: 1なら黒, 0なら灰色）
-                            if (data[by] && data[by][bx] === 1) {
-                                block.style.background = '#222';
-                            }
-                            chunkEl.appendChild(block);
-                        }
+        function getVisibleChunkRange() {
+            const map = document.getElementById('map');
+            const rect = map.getBoundingClientRect();
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            const centerX = vw / 2 - pos.x;
+            const centerY = vh / 2 - pos.y;
+            const left = (-pos.x - vw / 2) / zoom;
+            const top = (-pos.y - vh / 2) / zoom;
+            const right = (vw / 2 - pos.x) / zoom;
+            const bottom = (vh / 2 - pos.y) / zoom;
+            const chunkLeft = Math.floor(left / chunkPixel);
+            const chunkRight = Math.floor(right / chunkPixel);
+            const chunkTop = Math.floor(top / chunkPixel);
+            const chunkBottom = Math.floor(bottom / chunkPixel);
+            return {
+                left: chunkLeft,
+                right: chunkRight,
+                top: chunkTop,
+                bottom: chunkBottom
+            };
+        }
+
+        async function loadChunk(x, y) {
+            const key = `${x}_${y}`;
+            if (loadedChunks.has(key)) return;
+            const map = document.getElementById('map');
+            const chunkEl = document.createElement('div');
+            chunkEl.className = 'chunk';
+            chunkEl.style.left = `${x * chunkPixel}px`;
+            chunkEl.style.top = `${y * chunkPixel}px`;
+            chunkEl.dataset.chunk = key;
+            map.appendChild(chunkEl);
+            loadedChunks.set(key, { element: chunkEl, data: null });
+            try {
+                const res = await fetch(`/mapfiles/${key}.json`);
+                if (!res.ok) throw new Error('not found');
+                const data = await res.json();
+                loadedChunks.get(key).data = data;
+                for (let by = 0; by < chunkSize; by++) {
+                    for (let bx = 0; bx < chunkSize; bx++) {
+                        const idx = by * chunkSize + bx;
+                        const blockType = data[idx];
+                        if (!blockType || blockType === 0) continue;
+                        const block = document.createElement('div');
+                        block.className = 'block';
+                        block.style.gridColumn = bx + 1;
+                        block.style.gridRow = by + 1;
+                        block.style.background = colors[blockType] || '#eee';
+                        chunkEl.appendChild(block);
                     }
-                } catch (e) {
-                    // データなしの場合は空のまま
+                }
+            } catch (e) {
+            }
+        }
+
+        function cleanupChunks(visible) {
+            for (const [key, value] of loadedChunks.entries()) {
+                const [x, y] = key.split('_').map(Number);
+                if (x < visible.left || x > visible.right || y < visible.top || y > visible.bottom) {
+                    value.element.remove();
+                    loadedChunks.delete(key);
                 }
             }
+        }
 
-            function cleanupChunks(visible) {
-                for (const [key, value] of loadedChunks.entries()) {
-                    const [x, y] = key.split('_').map(Number);
-                    if (x < visible.left || x > visible.right || y < visible.top || y > visible.bottom) {
-                        value.element.remove();
-                        loadedChunks.delete(key);
-                    }
+        async function update() {
+            const map = document.getElementById('map');
+            map.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${zoom})`;
+            // 表示範囲のチャンク計算
+            const visible = getVisibleChunkRange();
+            // 必要なチャンクだけ描画・fetch
+            for (let cx = visible.left; cx <= visible.right; cx++) {
+                for (let cy = visible.top; cy <= visible.bottom; cy++) {
+                    loadChunk(cx, cy);
                 }
             }
-
-            async function update() {
-                const map = document.getElementById('map');
-                map.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${zoom})`;
-                // 表示範囲のチャンク計算
-                const visible = getVisibleChunkRange();
-                // 必要なチャンクだけ描画・fetch
-                for (let cx = visible.left; cx <= visible.right; cx++) {
-                    for (let cy = visible.top; cy <= visible.bottom; cy++) {
-                        loadChunk(cx, cy);
-                    }
-                }
-                // 範囲外チャンク削除
-                cleanupChunks(visible);
-                requestAnimationFrame(update);
-            }
+            // 範囲外チャンク削除
+            cleanupChunks(visible);
+            requestAnimationFrame(update);
+        }
         document.addEventListener('wheel', function(event) {
             event.preventDefault();
             const map = document.getElementById('map');
