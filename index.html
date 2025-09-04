@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MC Wplace</title>
+</head>
+<body>
+    <div id="map"></div>
+    <style>
+        #map {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            user-select: none;
+            > .chunk {
+                position: absolute;
+                width: 256px;
+                height: 256px;
+                display: grid;
+                grid-template-columns: repeat(16, 1fr);
+                grid-template-rows: repeat(16, 1fr);
+                background: #ccc;
+                > .block {
+                }
+            }
+        }
+    </style>
+    <script>
+        let pos = { x: 0, y: 0 };
+        let mouse_pos = { x: 0, y: 0 };
+        let zoom = 1.0;
+        let prev_mouse_pos = null;
+            // チャンク管理用
+            const chunkSize = 16;
+            const chunkPixel = 256;
+            const loadedChunks = new Map(); // key: 'x_y', value: {element, data}
+
+            function getVisibleChunkRange() {
+                const map = document.getElementById('map');
+                const rect = map.getBoundingClientRect();
+                // 画面サイズ取得
+                const vw = window.innerWidth;
+                const vh = window.innerHeight;
+                // mapの中心座標（画面上）
+                const centerX = vw / 2 - pos.x;
+                const centerY = vh / 2 - pos.y;
+                // 表示範囲（map座標系）
+                const left = (-pos.x - vw / 2) / zoom;
+                const top = (-pos.y - vh / 2) / zoom;
+                const right = (vw / 2 - pos.x) / zoom;
+                const bottom = (vh / 2 - pos.y) / zoom;
+                // チャンク番号範囲
+                const chunkLeft = Math.floor(left / chunkPixel);
+                const chunkRight = Math.floor(right / chunkPixel);
+                const chunkTop = Math.floor(top / chunkPixel);
+                const chunkBottom = Math.floor(bottom / chunkPixel);
+                return {
+                    left: chunkLeft,
+                    right: chunkRight,
+                    top: chunkTop,
+                    bottom: chunkBottom
+                };
+            }
+
+            async function loadChunk(x, y) {
+                const key = `${x}_${y}`;
+                if (loadedChunks.has(key)) return;
+                const map = document.getElementById('map');
+                // チャンク要素作成
+                const chunkEl = document.createElement('div');
+                chunkEl.className = 'chunk';
+                chunkEl.style.left = `${x * chunkPixel}px`;
+                chunkEl.style.top = `${y * chunkPixel}px`;
+                chunkEl.dataset.chunk = key;
+                map.appendChild(chunkEl);
+                loadedChunks.set(key, { element: chunkEl, data: null });
+                // fetch
+                try {
+                    const res = await fetch(`/mapfiles/${key}.json`);
+                    if (!res.ok) throw new Error('not found');
+                    const data = await res.json();
+                    loadedChunks.get(key).data = data;
+                    // 描画
+                    for (let by = 0; by < chunkSize; by++) {
+                        for (let bx = 0; bx < chunkSize; bx++) {
+                            const block = document.createElement('div');
+                            block.className = 'block';
+                            block.style.gridColumn = bx + 1;
+                            block.style.gridRow = by + 1;
+                            // データに応じて色など変更（例: 1なら黒, 0なら灰色）
+                            if (data[by] && data[by][bx] === 1) {
+                                block.style.background = '#222';
+                            }
+                            chunkEl.appendChild(block);
+                        }
+                    }
+                } catch (e) {
+                    // データなしの場合は空のまま
+                }
+            }
+
+            function cleanupChunks(visible) {
+                for (const [key, value] of loadedChunks.entries()) {
+                    const [x, y] = key.split('_').map(Number);
+                    if (x < visible.left || x > visible.right || y < visible.top || y > visible.bottom) {
+                        value.element.remove();
+                        loadedChunks.delete(key);
+                    }
+                }
+            }
+
+            async function update() {
+                const map = document.getElementById('map');
+                map.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${zoom})`;
+                // 表示範囲のチャンク計算
+                const visible = getVisibleChunkRange();
+                // 必要なチャンクだけ描画・fetch
+                for (let cx = visible.left; cx <= visible.right; cx++) {
+                    for (let cy = visible.top; cy <= visible.bottom; cy++) {
+                        loadChunk(cx, cy);
+                    }
+                }
+                // 範囲外チャンク削除
+                cleanupChunks(visible);
+                requestAnimationFrame(update);
+            }
+        document.addEventListener('wheel', function(event) {
+            event.preventDefault();
+            const map = document.getElementById('map');
+            const rect = map.getBoundingClientRect();
+            // マウス座標をmap要素のtransform前の座標系に変換
+            const mouse_x = (event.clientX - rect.left - pos.x) / zoom;
+            const mouse_y = (event.clientY - rect.top - pos.y) / zoom;
+            // 現在のズーム前の値
+            const prev_zoom = zoom;
+            if (event.deltaY < 0) {
+                zoom += event.deltaY * -0.01;
+            } else {
+                zoom -= event.deltaY * 0.01;
+            }
+            if (zoom < 0.1) zoom = 0.1;
+            if (zoom > 10) zoom = 10;
+            // ズーム後、マウス位置が同じmap内の点を指すようにposを調整
+            pos.x = event.clientX - rect.left - mouse_x * zoom;
+            pos.y = event.clientY - rect.top - mouse_y * zoom;
+                // update()はrequestAnimationFrameで自動呼び出しされるので不要
+        }, { passive: false });
+        // 二本指ズームに対応
+        document.addEventListener('touchmove', function(event) {
+            if (event.touches.length === 2) {
+                event.preventDefault();
+                const map = document.getElementById('map');
+                const rect = map.getBoundingClientRect();
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+                if (this.lastDistance) {
+                    const deltaDistance = currentDistance - this.lastDistance;
+                    const mouse_x = ( (touch1.clientX + touch2.clientX) / 2 - rect.left - pos.x ) / zoom;
+                    const mouse_y = ( (touch1.clientY + touch2.clientY) / 2 - rect.top - pos.y ) / zoom;
+                    const prev_zoom = zoom;
+                    zoom += deltaDistance * 0.005;
+                    if (zoom < 0.1) zoom = 0.1;
+                    if (zoom > 10) zoom = 10;
+                    pos.x = ( (touch1.clientX + touch2.clientX) / 2 ) - rect.left - mouse_x * zoom;
+                    pos.y = ( (touch1.clientY + touch2.clientY) / 2 ) - rect.top - mouse_y * zoom;
+                        // update()はrequestAnimationFrameで自動呼び出しされるので不要
+                }
+                this.lastDistance = currentDistance;
+            }
+        }, { passive: false });
+        document.addEventListener('mousemove', function(event) {
+            console.log(event);
+            mouse_pos.x = event.clientX;
+            mouse_pos.y = event.clientY;
+            if (event.buttons === 1) {
+                if (prev_mouse_pos === null) {
+                    prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
+                }
+                pos.x += (mouse_pos.x - prev_mouse_pos.x);
+                pos.y += (mouse_pos.y - prev_mouse_pos.y);
+                prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
+                    // update()はrequestAnimationFrameで自動呼び出しされるので不要
+            } else {
+                prev_mouse_pos = null;
+            }
+        });
+    // 初回起動
+    update();
+    </script>
+</body>
+</html>
