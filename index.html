@@ -313,6 +313,11 @@
                     // update()はrequestAnimationFrameで自動呼び出しされるので不要
             }
         }, { passive: false });
+            document.addEventListener('touchend', function(event) {
+                prev_mouse_pos = null;
+                // 2本指ズーム終了時もlastDistanceリセット
+                this.lastDistance = null;
+            });
         document.addEventListener('mousemove', function(event) {
 //            console.log(event);
             mouse_pos.x = event.clientX;
