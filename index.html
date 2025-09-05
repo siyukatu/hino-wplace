@@ -24,6 +24,9 @@
             background: #888;
             color: #333;
             font-family: sans-serif;
+            position: fixed;
+            top: 0;
+            left: 0;
         }
         #position {
             position: fixed;
@@ -34,6 +37,8 @@
             padding: 5px;
             border: 1px solid #ccc;
             z-index: 1000;
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
         }
         #info {
             position: fixed;
@@ -44,6 +49,8 @@
             font-size: 0.8em;
             color: #fff;
             text-shadow: 0 0 2px rgba(0,0,0,0.5);
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
             > a {
                 color: currentColor;
                 text-decoration: underline;
@@ -112,6 +119,9 @@
             left: 50%;
             transform: translate(-50%, -50%) scale(1);
             user-select: none;
+            width: 0;
+            height: 0;
+            overflow: visible;
             > .chunk {
                 position: absolute;
                 width: 128px;
