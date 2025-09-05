@@ -308,6 +308,48 @@
         // 二本指ズームに対応
         // タッチ用の前回位置保存
         let lastTouchCenter = null;
+        // ジェスチャー用の状態管理
+        let gestureStartScale = 1;
+        let gestureStartPos = { x: 0, y: 0 };
+        let gestureCenter = { x: 0, y: 0 };
+
+        document.addEventListener('gesturestart', function(event) {
+            event.preventDefault();
+            gestureStartScale = zoom;
+            gestureStartPos = { x: pos.x, y: pos.y };
+            gestureCenter = {
+                x: event.clientX - window.innerWidth / 2,
+                y: event.clientY - window.innerHeight / 2
+            };
+        }, { passive: false });
+
+        document.addEventListener('gesturechange', function(event) {
+            event.preventDefault();
+            const newZoom = gestureStartScale * event.scale;
+            if (newZoom < 0.25 || newZoom > 10) return;
+            
+            // ジェスチャー開始時のmap座標
+            const mapX = (gestureCenter.x - gestureStartPos.x) / gestureStartScale;
+            const mapY = (gestureCenter.y - gestureStartPos.y) / gestureStartScale;
+            
+            // 新しいズームとポジション
+            zoom = newZoom;
+            pos.x = gestureCenter.x - mapX * zoom;
+            pos.y = gestureCenter.y - mapY * zoom;
+        }, { passive: false });
+
+        document.addEventListener('gestureend', function(event) {
+            event.preventDefault();
+            // 最終的な調整
+            const newZoom = gestureStartScale * event.scale;
+            if (newZoom >= 0.25 && newZoom <= 10) {
+                const mapX = (gestureCenter.x - gestureStartPos.x) / gestureStartScale;
+                const mapY = (gestureCenter.y - gestureStartPos.y) / gestureStartScale;
+                zoom = newZoom;
+                pos.x = gestureCenter.x - mapX * zoom;
+                pos.y = gestureCenter.y - mapY * zoom;
+            }
+        }, { passive: false });
 
         document.addEventListener('touchmove', function(event) {
             if (event.touches.length === 2) {
