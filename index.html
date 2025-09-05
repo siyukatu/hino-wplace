@@ -8,9 +8,11 @@
 <body>
     <div id="position"></div>
     <div id="tooltip"></div>
+    <div id="center-pointer"></div>
+    <div id="center-tooltip"></div>
     <div id="map"></div>
     <div id="info">
-        Mplace By <a href="https://www.youtube.com/@hino_YT" target="_blank">ヒノ</a> | Sponsored By <a href="https://vps.xserver.ne.jp/game-server/" target="_blank">Xserver</a><br>
+        Mplace by <a href="https://www.youtube.com/@hino_YT" target="_blank">ヒノ</a> | Sponsored by <a href="https://vps.xserver.ne.jp/game-server/" target="_blank">Xserver</a><br>
     </div>
     <style>
         body, html {
@@ -56,6 +58,52 @@
             font-size: 12px;
             pointer-events: none;
             z-index: 1001;
+            display: none;
+        }
+        #center-pointer {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            pointer-events: none;
+            z-index: 1002;
+            display: none;
+        }
+        #center-pointer::before,
+        #center-pointer::after {
+            content: '';
+            position: absolute;
+            background: rgba(255, 255, 255, 0.8);
+            border: 1px solid rgba(0, 0, 0, 0.3);
+        }
+        #center-pointer::before {
+            top: 50%;
+            left: 8px;
+            right: 8px;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+        #center-pointer::after {
+            left: 50%;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            transform: translateX(-50%);
+        }
+        #center-tooltip {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -120%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1003;
             display: none;
         }
         #map {
@@ -121,9 +169,31 @@
             tooltip.innerText = `MC: (${mc_x}, ${mc_y})`;
         }
 
+        // 画面中央のツールチップ表示
+        function showCenterTooltip() {
+            const centerPointer = document.getElementById('center-pointer');
+            const centerTooltip = document.getElementById('center-tooltip');
+            centerPointer.style.display = 'block';
+            centerTooltip.style.display = 'block';
+            
+            // 画面中央の座標を計算
+            const centerX = -pos.x / zoom;
+            const centerY = -pos.y / zoom;
+            const mc_x = Math.floor(centerX * 16 / chunkPixel);
+            const mc_y = Math.floor(centerY * 16 / chunkPixel);
+            centerTooltip.innerText = `MC: (${mc_x}, ${mc_y})`;
+        }
+
         function hideTooltip() {
             const tooltip = document.getElementById('tooltip');
             tooltip.style.display = 'none';
+        }
+
+        function hideCenterTooltip() {
+            const centerPointer = document.getElementById('center-pointer');
+            const centerTooltip = document.getElementById('center-tooltip');
+            centerPointer.style.display = 'none';
+            centerTooltip.style.display = 'none';
         }
 
         const colors = {
@@ -456,6 +526,7 @@
             if (event.touches.length === 2) {
                 event.preventDefault();
                 hideTooltip();
+                hideCenterTooltip();
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
                 const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
@@ -473,14 +544,14 @@
                 }
                 
                 // ズーム処理
-                if (this.lastDistance) {
+                if (this.lastDistance && Math.abs(currentDistance - this.lastDistance) > 5) {
                     const prev_zoom = zoom;
                     // ズーム中心（画面中心からの相対座標）
                     const centerScreenX = currentCenter.x - window.innerWidth / 2;
                     const centerScreenY = currentCenter.y - window.innerHeight / 2;
                     // ズーム前のmap座標（移動補正前のposを使用）
-                    const mapX = (centerScreenX - (pos.x - (currentCenter.x - lastTouchCenter.x))) / prev_zoom;
-                    const mapY = (centerScreenY - (pos.y - (currentCenter.y - lastTouchCenter.y))) / prev_zoom;
+                    const mapX = (centerScreenX - (pos.x - (lastTouchCenter ? (currentCenter.x - lastTouchCenter.x) : 0))) / prev_zoom;
+                    const mapY = (centerScreenY - (pos.y - (lastTouchCenter ? (currentCenter.y - lastTouchCenter.y) : 0))) / prev_zoom;
                     const deltaDistance = currentDistance - this.lastDistance;
                     zoom += deltaDistance * 0.005;
                     if (zoom < 0.25) zoom = 0.25;
@@ -492,6 +563,9 @@
                 
                 this.lastDistance = currentDistance;
                 lastTouchCenter = currentCenter;
+                
+                // 移動中の中央座標表示
+                showCenterTooltip();
                 return;
             }
             // 1本指移動
@@ -507,16 +581,15 @@
                 pos.y += (mouse_pos.y - prev_mouse_pos.y);
                 prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
                 
-                // ツールチップ位置更新
-                const mapX = (touch.clientX - window.innerWidth / 2 - pos.x) / zoom;
-                const mapY = (touch.clientY - window.innerHeight / 2 - pos.y) / zoom;
-                showTooltip(touch.clientX, touch.clientY, mapX, mapY);
+                // 移動中の中央座標表示
+                showCenterTooltip();
             }
         }, { passive: false });
             document.addEventListener('touchend', function(event) {
                 prev_mouse_pos = null;
                 lastTouchCenter = null;
                 hideTooltip();
+                hideCenterTooltip();
                 // 2本指ズーム終了時もlastDistanceリセット
                 this.lastDistance = null;
             });
@@ -530,8 +603,12 @@
                 pos.x += (mouse_pos.x - prev_mouse_pos.x);
                 pos.y += (mouse_pos.y - prev_mouse_pos.y);
                 prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
+                
+                // ドラッグ移動中の中央座標表示
+                showCenterTooltip();
             } else {
                 prev_mouse_pos = null;
+                hideCenterTooltip();
             }
         });
     // 初回起動
