@@ -260,7 +260,6 @@
             // マウス座標をmap要素のtransform前の座標系に変換
             const mouse_x = (event.clientX - rect.left - pos.x) / zoom;
             const mouse_y = (event.clientY - rect.top - pos.y) / zoom;
-            // 現在のズーム前の値
             const prev_zoom = zoom;
             if (event.deltaY < 0) {
                 zoom += event.deltaY * -0.005;
@@ -269,10 +268,9 @@
             }
             if (zoom < 0.25) zoom = 0.25;
             if (zoom > 10) zoom = 10;
-            // ズーム後、マウス位置が同じmap内の点を指すようにposを調整
-            pos.x = event.clientX - rect.left - mouse_x * zoom;
-            pos.y = event.clientY - rect.top - mouse_y * zoom;
-                // update()はrequestAnimationFrameで自動呼び出しされるので不要
+            // ズーム中心が同じmap座標を指すようにpos調整
+            pos.x += mouse_x * (prev_zoom - zoom);
+            pos.y += mouse_y * (prev_zoom - zoom);
         }, { passive: false });
         // 二本指ズームに対応
         document.addEventListener('touchmove', function(event) {
@@ -284,16 +282,16 @@
                 const touch2 = event.touches[1];
                 const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
                 if (this.lastDistance) {
-                    const deltaDistance = currentDistance - this.lastDistance;
-                    const mouse_x = ( (touch1.clientX + touch2.clientX) / 2 - rect.left - pos.x ) / zoom;
-                    const mouse_y = ( (touch1.clientY + touch2.clientY) / 2 - rect.top - pos.y ) / zoom;
                     const prev_zoom = zoom;
+                    const mouse_x = ((touch1.clientX + touch2.clientX) / 2 - rect.left - pos.x) / zoom;
+                    const mouse_y = ((touch1.clientY + touch2.clientY) / 2 - rect.top - pos.y) / zoom;
+                    const deltaDistance = currentDistance - this.lastDistance;
                     zoom += deltaDistance * 0.005;
                     if (zoom < 0.25) zoom = 0.25;
-                    if (zoom > 10) zoom = 2;
-                    pos.x = ( (touch1.clientX + touch2.clientX) / 2 ) - rect.left - mouse_x * zoom;
-                    pos.y = ( (touch1.clientY + touch2.clientY) / 2 ) - rect.top - mouse_y * zoom;
-                        // update()はrequestAnimationFrameで自動呼び出しされるので不要
+                    if (zoom > 10) zoom = 10;
+                    // ズーム中心が同じmap座標を指すようにpos調整
+                    pos.x += mouse_x * (prev_zoom - zoom);
+                    pos.y += mouse_y * (prev_zoom - zoom);
                 }
                 this.lastDistance = currentDistance;
                 return;
