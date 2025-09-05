@@ -316,8 +316,8 @@
                 const mapY = (centerScreenY - pos.y) / prev_zoom;
                 
                 // 移動処理（deltaX, deltaYを使用）
-                pos.x -= event.deltaX * 0.5;
-                pos.y -= event.deltaY * 0.5;
+                pos.x -= event.deltaX * 1;
+                pos.y -= event.deltaY * 1;
                 
                 // Shiftキーでズーム
                 if (event.shiftKey) {
