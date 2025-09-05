@@ -49,7 +49,7 @@
         }
         @keyframes pulse {
             0% { background-color: #ccc; }
-            50% { background-color: #eee; }
+            50% { background-color: #ddd; }
             100% { background-color: #ccc; }
         }
     </style>
@@ -174,7 +174,7 @@
             if (loadedChunks.has(key)) return;
             const map = document.getElementById('map');
             const chunkEl = document.createElement('div');
-            chunkEl.className = 'chunk';
+            chunkEl.className = 'chunk loading';
             chunkEl.style.left = `${x * chunkPixel}px`;
             chunkEl.style.top = `${y * chunkPixel}px`;
             chunkEl.dataset.chunk = key;
@@ -182,7 +182,8 @@
             loadedChunks.set(key, { element: chunkEl, data: null });
             try {
                 const res = await fetch(`/mapfiles/${key}.json`);
-                if (!res.ok) throw new Error('not found');
+                chunkEl.classList.remove('loading');
+                if (!res.ok) return;
                 const data = await res.json();
                 loadedChunks.get(key).data = data;
                 for (let by = 0; by < chunkSize; by++) {
@@ -199,6 +200,7 @@
                     }
                 }
             } catch (e) {
+            } finally {
             }
         }
 
@@ -294,6 +296,8 @@
             mouse_map_pos.x = (event.clientX - rect.left - pos.x) / zoom;
             mouse_map_pos.y = (event.clientY - rect.top - pos.y) / zoom;
 //            console.log(mouse_map_pos);
+            const position = document.getElementById('position');
+            position.innerText = `(${Math.floor(mouse_map_pos.x)}, ${Math.floor(mouse_map_pos.y)}) Zoom: ${zoom.toFixed(2)}`;
         });
     // 初回起動
     update();
