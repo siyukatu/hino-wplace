@@ -183,8 +183,13 @@
             try {
                 const res = await fetch(`/mapfiles/${key}.json`);
                 chunkEl.classList.remove('loading');
-                if (!res.ok) return;
-                const data = await res.json();
+                let data = null;
+                try {
+                    data = await res.json();
+                } catch (e) {}
+                if (data === null) {
+                    data = new Array(chunkSize * chunkSize).fill(0);
+                }
                 loadedChunks.get(key).data = data;
                 for (let by = 0; by < chunkSize; by++) {
                     for (let bx = 0; bx < chunkSize; bx++) {
