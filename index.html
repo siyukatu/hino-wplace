@@ -48,9 +48,9 @@
             }
         }
         @keyframes pulse {
-            0% { background-color: #c0c0c0; }
-            50% { background-color: #bbb; }
-            100% { background-color: #c0c0c0; }
+            0% { background-color: #d0d0d0; }
+            50% { background-color: #ddd; }
+            100% { background-color: #d0d0d0; }
         }
     </style>
     <script>
@@ -60,10 +60,10 @@
         let prev_mouse_pos = null;
         const chunkSize = 16;
         const chunkPixel = 128;
-    const loadedChunks = new Map();
-    const loadingChunks = new Set(); // リクエスト中管理
-    const fetchQueue = [];
-    const MAX_CONCURRENT_FETCH = 20;
+        const loadedChunks = new Map();
+        const loadingChunks = new Set(); // リクエスト中管理
+        const fetchQueue = [];
+        const MAX_CONCURRENT_FETCH = 20;
 
         const colors = {
             WHITE_WOOL: "#F9FFFE",
@@ -146,7 +146,7 @@
             PURPLE_GLAZED_TERRACOTTA: "#8932B8",
             RED_GLAZED_TERRACOTTA: "#B02E26",
             WHITE_GLAZED_TERRACOTTA: "#F9FFFE",
-            YELLOW_GLAZED_TERRACOTTA: "#FED83D"
+            YELLOW_GLAZED_TERRACOTTA: "#FED83D",
         };
 
         function getVisibleChunkRange() {
@@ -213,7 +213,7 @@
                         block.className = 'block';
                         block.style.gridColumn = bx + 1;
                         block.style.gridRow = by + 1;
-                        block.style.background = colors[blockType] || '#555';
+                        block.style.background = colors[blockType] || '#7FB238';
                         chunkEl.appendChild(block);
                     }
                 }
