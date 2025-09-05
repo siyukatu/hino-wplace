@@ -452,8 +452,18 @@
         // 二本指ズームに対応
         // タッチ用の前回位置保存
         let lastTouchCenter = null;
+        let lastTouchDistance = null;
 
         document.addEventListener('touchstart', function(event) {
+            if (event.touches.length === 2) {
+                const touch1 = event.touches[0];
+                const touch2 = event.touches[1];
+                lastTouchDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+                lastTouchCenter = {
+                    x: (touch1.clientX + touch2.clientX) / 2,
+                    y: (touch1.clientY + touch2.clientY) / 2
+                };
+            }
         });
 
         document.addEventListener('touchmove', function(event) {
@@ -477,7 +487,7 @@
                 }
                 
                 // ズーム処理（距離変化が閾値を超える場合のみ）
-                if (this.lastDistance && Math.abs(currentDistance - this.lastDistance) > 2) {
+                if (lastTouchDistance && Math.abs(currentDistance - lastTouchDistance) > 2) {
                     const prev_zoom = zoom;
                     // ズーム中心（画面中心からの相対座標）
                     const centerScreenX = currentCenter.x - window.innerWidth / 2;
@@ -485,7 +495,7 @@
                     // ズーム前のmap座標（移動後のposを使用）
                     const mapX = (centerScreenX - pos.x) / prev_zoom;
                     const mapY = (centerScreenY - pos.y) / prev_zoom;
-                    const deltaDistance = currentDistance - this.lastDistance;
+                    const deltaDistance = currentDistance - lastTouchDistance;
                     zoom += deltaDistance * 0.008;
                     if (zoom < 0.25) zoom = 0.25;
                     if (zoom > 10) zoom = 10;
@@ -494,7 +504,7 @@
                     pos.y = centerScreenY - mapY * zoom;
                     
                     // ズーム処理が実行された場合のみlastDistanceを更新
-                    this.lastDistance = currentDistance;
+                    lastTouchDistance = currentDistance;
                 }
                 
                 lastTouchCenter = currentCenter;
@@ -503,6 +513,7 @@
                 showCenterTooltip();
                 return;
             }
+
             // 1本指移動
             if (event.touches.length === 1) {
                 event.preventDefault();
@@ -523,9 +534,8 @@
             document.addEventListener('touchend', function(event) {
                 prev_mouse_pos = null;
                 lastTouchCenter = null;
+                lastTouchDistance = null;
                 hideCenterTooltip();
-                // 2本指ズーム終了時もlastDistanceリセット
-                this.lastDistance = null;
             });
         document.addEventListener('mousemove', function(event) {
             mouse_pos.x = event.clientX;
