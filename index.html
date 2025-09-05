@@ -37,10 +37,11 @@
             position: fixed;
             bottom: 10px;
             left: 10px;
-            padding: 5px;
+            padding: 0 5px;
             z-index: 1000;
-            font-size: 0.9em;
-            text-shadow: 0 0 3px rgba(255, 255, 255, 0.7);
+            font-size: 0.8em;
+            color: #fff;
+            text-shadow: 0 0 2px rgba(0,0,0,0.5);
             > a {
                 color: currentColor;
                 text-decoration: underline;
@@ -101,9 +102,9 @@
             // チャンク座標系に変換（Minecraft座標）
             map_pos.x = (mouse_pos.x - window.innerWidth / 2 - pos.x) / zoom;
             map_pos.y = (mouse_pos.y - window.innerHeight / 2 - pos.y) / zoom;
-            // ピクセル座標をMinecraft座標に変換（チャンクサイズ考慮）
-            const mc_x = Math.floor(map_pos.x / chunkPixel) * 16 + Math.floor((map_pos.x % chunkPixel) / (chunkPixel / 16));
-            const mc_y = Math.floor(map_pos.y / chunkPixel) * 16 + Math.floor((map_pos.y % chunkPixel) / (chunkPixel / 16));
+            // ピクセル座標をMinecraft座標に変換
+            const mc_x = Math.floor(map_pos.x * 16 / chunkPixel);
+            const mc_y = Math.floor(map_pos.y * 16 / chunkPixel);
             const position = document.getElementById('position');
             position.innerText = `MC: (${mc_x}, ${mc_y}) Zoom: ${zoom.toFixed(2)}`;
         }
@@ -115,8 +116,8 @@
             tooltip.style.left = x + 10 + 'px';
             tooltip.style.top = y - 30 + 'px';
             // Minecraft座標に変換
-            const mc_x = Math.floor(mapX / chunkPixel) * 16 + Math.floor((mapX % chunkPixel) / (chunkPixel / 16));
-            const mc_y = Math.floor(mapY / chunkPixel) * 16 + Math.floor((mapY % chunkPixel) / (chunkPixel / 16));
+            const mc_x = Math.floor(mapX * 16 / chunkPixel);
+            const mc_y = Math.floor(mapY * 16 / chunkPixel);
             tooltip.innerText = `MC: (${mc_x}, ${mc_y})`;
         }
 
