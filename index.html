@@ -257,10 +257,13 @@
             event.preventDefault();
             const map = document.getElementById('map');
             const rect = map.getBoundingClientRect();
-            // マウス座標をmap要素のtransform前の座標系に変換
-            const mouse_x = (event.clientX - rect.left - pos.x) / zoom;
-            const mouse_y = (event.clientY - rect.top - pos.y) / zoom;
             const prev_zoom = zoom;
+            // ズーム中心（画面上のマウス座標）
+            const centerScreenX = event.clientX - rect.left;
+            const centerScreenY = event.clientY - rect.top;
+            // ズーム前のmap座標
+            const mapX = (centerScreenX - pos.x) / prev_zoom;
+            const mapY = (centerScreenY - pos.y) / prev_zoom;
             if (event.deltaY < 0) {
                 zoom += event.deltaY * -0.005;
             } else {
@@ -268,9 +271,9 @@
             }
             if (zoom < 0.25) zoom = 0.25;
             if (zoom > 10) zoom = 10;
-            // ズーム中心が同じmap座標を指すようにpos調整
-            pos.x += mouse_x * (prev_zoom - zoom);
-            pos.y += mouse_y * (prev_zoom - zoom);
+            // ズーム後も同じmap座標が同じ画面座標になるようにpos調整
+            pos.x = centerScreenX - mapX * zoom;
+            pos.y = centerScreenY - mapY * zoom;
         }, { passive: false });
         // 二本指ズームに対応
         document.addEventListener('touchmove', function(event) {
@@ -283,15 +286,19 @@
                 const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
                 if (this.lastDistance) {
                     const prev_zoom = zoom;
-                    const mouse_x = ((touch1.clientX + touch2.clientX) / 2 - rect.left - pos.x) / zoom;
-                    const mouse_y = ((touch1.clientY + touch2.clientY) / 2 - rect.top - pos.y) / zoom;
+                    // ズーム中心（画面上の2指の中点）
+                    const centerScreenX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
+                    const centerScreenY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+                    // ズーム前のmap座標
+                    const mapX = (centerScreenX - pos.x) / prev_zoom;
+                    const mapY = (centerScreenY - pos.y) / prev_zoom;
                     const deltaDistance = currentDistance - this.lastDistance;
                     zoom += deltaDistance * 0.005;
                     if (zoom < 0.25) zoom = 0.25;
                     if (zoom > 10) zoom = 10;
-                    // ズーム中心が同じmap座標を指すようにpos調整
-                    pos.x += mouse_x * (prev_zoom - zoom);
-                    pos.y += mouse_y * (prev_zoom - zoom);
+                    // ズーム後も同じmap座標が同じ画面座標になるようにpos調整
+                    pos.x = centerScreenX - mapX * zoom;
+                    pos.y = centerScreenY - mapY * zoom;
                 }
                 this.lastDistance = currentDistance;
                 return;
