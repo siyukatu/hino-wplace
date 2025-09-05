@@ -97,10 +97,14 @@
         // 座標表示の更新
         function updatePositionDisplay() {
             const map_pos = { x: 0, y: 0 };
+            // チャンク座標系に変換（Minecraft座標）
             map_pos.x = (mouse_pos.x - window.innerWidth / 2 - pos.x) / zoom;
             map_pos.y = (mouse_pos.y - window.innerHeight / 2 - pos.y) / zoom;
+            // ピクセル座標をMinecraft座標に変換（チャンクサイズ考慮）
+            const mc_x = Math.floor(map_pos.x / chunkPixel) * 16 + Math.floor((map_pos.x % chunkPixel) / (chunkPixel / 16));
+            const mc_y = Math.floor(map_pos.y / chunkPixel) * 16 + Math.floor((map_pos.y % chunkPixel) / (chunkPixel / 16));
             const position = document.getElementById('position');
-            position.innerText = `(${Math.floor(map_pos.x)}, ${Math.floor(map_pos.y)}) Zoom: ${zoom.toFixed(2)}`;
+            position.innerText = `MC: (${mc_x}, ${mc_y}) Zoom: ${zoom.toFixed(2)}`;
         }
 
         // ツールチップ表示
@@ -109,7 +113,10 @@
             tooltip.style.display = 'block';
             tooltip.style.left = x + 10 + 'px';
             tooltip.style.top = y - 30 + 'px';
-            tooltip.innerText = `(${Math.floor(mapX)}, ${Math.floor(mapY)})`;
+            // Minecraft座標に変換
+            const mc_x = Math.floor(mapX / chunkPixel) * 16 + Math.floor((mapX % chunkPixel) / (chunkPixel / 16));
+            const mc_y = Math.floor(mapY / chunkPixel) * 16 + Math.floor((mapY % chunkPixel) / (chunkPixel / 16));
+            tooltip.innerText = `MC: (${mc_x}, ${mc_y})`;
         }
 
         function hideTooltip() {
@@ -457,8 +464,10 @@
                 
                 // 移動処理（2本指の中点の移動）
                 if (lastTouchCenter) {
-                    pos.x += (currentCenter.x - lastTouchCenter.x);
-                    pos.y += (currentCenter.y - lastTouchCenter.y);
+                    const deltaX = currentCenter.x - lastTouchCenter.x;
+                    const deltaY = currentCenter.y - lastTouchCenter.y;
+                    pos.x += deltaX;
+                    pos.y += deltaY;
                 }
                 
                 // ズーム処理
@@ -467,9 +476,9 @@
                     // ズーム中心（画面中心からの相対座標）
                     const centerScreenX = currentCenter.x - window.innerWidth / 2;
                     const centerScreenY = currentCenter.y - window.innerHeight / 2;
-                    // ズーム前のmap座標
-                    const mapX = (centerScreenX - pos.x) / prev_zoom;
-                    const mapY = (centerScreenY - pos.y) / prev_zoom;
+                    // ズーム前のmap座標（移動補正前のposを使用）
+                    const mapX = (centerScreenX - (pos.x - (currentCenter.x - lastTouchCenter.x))) / prev_zoom;
+                    const mapY = (centerScreenY - (pos.y - (currentCenter.y - lastTouchCenter.y))) / prev_zoom;
                     const deltaDistance = currentDistance - this.lastDistance;
                     zoom += deltaDistance * 0.005;
                     if (zoom < 0.25) zoom = 0.25;
