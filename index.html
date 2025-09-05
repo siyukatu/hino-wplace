@@ -171,11 +171,6 @@
             centerTooltip.innerText = `MC: (${mc_x}, ${mc_y})`;
         }
 
-        function hideTooltip() {
-            const tooltip = document.getElementById('tooltip');
-            tooltip.style.display = 'none';
-        }
-
         function hideCenterTooltip() {
             const centerPointer = document.getElementById('center-pointer');
             const centerTooltip = document.getElementById('center-tooltip');
@@ -457,48 +452,6 @@
         // 二本指ズームに対応
         // タッチ用の前回位置保存
         let lastTouchCenter = null;
-        // ジェスチャー用の状態管理
-        let gestureStartScale = 1;
-        let gestureStartPos = { x: 0, y: 0 };
-        let gestureCenter = { x: 0, y: 0 };
-
-/*        document.addEventListener('gesturestart', function(event) {
-            event.preventDefault();
-            gestureStartScale = zoom;
-            gestureStartPos = { x: pos.x, y: pos.y };
-            gestureCenter = {
-                x: event.clientX - window.innerWidth / 2,
-                y: event.clientY - window.innerHeight / 2
-            };
-        }, { passive: false });
-
-        document.addEventListener('gesturechange', function(event) {
-            event.preventDefault();
-            const newZoom = gestureStartScale * event.scale;
-            if (newZoom < 0.25 || newZoom > 10) return;
-            
-            // ジェスチャー開始時のmap座標
-            const mapX = (gestureCenter.x - gestureStartPos.x) / gestureStartScale;
-            const mapY = (gestureCenter.y - gestureStartPos.y) / gestureStartScale;
-            
-            // 新しいズームとポジション
-            zoom = newZoom;
-            pos.x = gestureCenter.x - mapX * zoom;
-            pos.y = gestureCenter.y - mapY * zoom;
-        }, { passive: false });
-
-        document.addEventListener('gestureend', function(event) {
-            event.preventDefault();
-            // 最終的な調整
-            const newZoom = gestureStartScale * event.scale;
-            if (newZoom >= 0.25 && newZoom <= 10) {
-                const mapX = (gestureCenter.x - gestureStartPos.x) / gestureStartScale;
-                const mapY = (gestureCenter.y - gestureStartPos.y) / gestureStartScale;
-                zoom = newZoom;
-                pos.x = gestureCenter.x - mapX * zoom;
-                pos.y = gestureCenter.y - mapY * zoom;
-            }
-        }, { passive: false });*/
 
         document.addEventListener('touchstart', function(event) {
         });
@@ -506,7 +459,6 @@
         document.addEventListener('touchmove', function(event) {
             if (event.touches.length === 2) {
                 event.preventDefault();
-                hideTooltip();
                 hideCenterTooltip();
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
@@ -525,7 +477,7 @@
                 }
                 
                 // ズーム処理（距離変化が閾値を超える場合のみ）
-                if (this.lastDistance && Math.abs(currentDistance - this.lastDistance) > 5) {
+                if (this.lastDistance && Math.abs(currentDistance - this.lastDistance) > 2) {
                     const prev_zoom = zoom;
                     // ズーム中心（画面中心からの相対座標）
                     const centerScreenX = currentCenter.x - window.innerWidth / 2;
@@ -534,7 +486,7 @@
                     const mapX = (centerScreenX - pos.x) / prev_zoom;
                     const mapY = (centerScreenY - pos.y) / prev_zoom;
                     const deltaDistance = currentDistance - this.lastDistance;
-                    zoom += deltaDistance * 0.005;
+                    zoom += deltaDistance * 0.008;
                     if (zoom < 0.25) zoom = 0.25;
                     if (zoom > 10) zoom = 10;
                     // ズーム後も同じmap座標が同じ画面座標になるようにpos調整
@@ -571,7 +523,6 @@
             document.addEventListener('touchend', function(event) {
                 prev_mouse_pos = null;
                 lastTouchCenter = null;
-                hideTooltip();
                 hideCenterTooltip();
                 // 2本指ズーム終了時もlastDistanceリセット
                 this.lastDistance = null;
