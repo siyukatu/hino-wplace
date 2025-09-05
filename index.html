@@ -792,6 +792,32 @@
                 hideCenterTooltip();
             }
         });
+
+        // ズームボタン
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            const prev_zoom = zoom;
+            const centerScreenX = 0;
+            const centerScreenY = 0;
+            const mapX = (centerScreenX - pos.x) / prev_zoom;
+            const mapY = (centerScreenY - pos.y) / prev_zoom;
+            zoom += 0.1;
+            if (zoom > MAX_ZOOM) zoom = MAX_ZOOM;
+            pos.x = centerScreenX - mapX * zoom;
+            pos.y = centerScreenY - mapY * zoom;
+            updateURLHash();
+        });
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            const prev_zoom = zoom;
+            const centerScreenX = 0;
+            const centerScreenY = 0;
+            const mapX = (centerScreenX - pos.x) / prev_zoom;
+            const mapY = (centerScreenY - pos.y) / prev_zoom;
+            zoom -= 0.1;
+            if (zoom < MIN_ZOOM) zoom = MIN_ZOOM;
+            pos.x = centerScreenX - mapX * zoom;
+            pos.y = centerScreenY - mapY * zoom;
+            updateURLHash();
+        });
         
         // 初期化時にURLハッシュから状態を復元
         loadFromURLHash();
