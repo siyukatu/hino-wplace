@@ -184,10 +184,10 @@
                     left: 50%;
                     transform: translate(-50%, -50%);
                     width: 1em;
-                    height: 0.225em;
+                    height: 0.175em;
                 }
                 &::after {
-                    width: 0.225em;
+                    width: 0.175em;
                     height: 1em;
                 }
             }
@@ -200,7 +200,7 @@
                     left: 50%;
                     transform: translate(-50%, -50%);
                     width: 1em;
-                    height: 0.225em;
+                    height: 0.175em;
                 }
             }
         }
@@ -295,6 +295,8 @@
         const fetchQueue = [];
         const MAX_CONCURRENT_FETCH = 50;
 
+        const map = document.getElementById('map');
+
         // URLハッシュ管理
         function updateURLHash() {
             const hash = `#pos=${Math.round(pos.x)},${Math.round(pos.y)}&zoom=${zoom.toFixed(2)}`;
@@ -361,7 +363,7 @@
             const centerY = -pos.y / zoom;
             const mc_x = Math.floor(centerX * 16 / chunkPixel);
             const mc_y = Math.floor(centerY * 16 / chunkPixel);
-            centerTooltip.innerText = `MC: (${mc_x}, ${mc_y})`;
+            centerTooltip.innerText = `${mc_x}, ${mc_y}`;
         }
 
         function hideCenterTooltip() {
@@ -456,7 +458,6 @@
         };
 
         function getVisibleChunkRange() {
-            const map = document.getElementById('map');
             const rect = map.getBoundingClientRect();
             const vw = window.innerWidth;
             const vh = window.innerHeight;
@@ -481,7 +482,6 @@
         async function loadChunk(x, y, priority = 0) {
             const key = `${x}_${y}`;
             if (loadedChunks.has(key) || loadingChunks.has(key)) return;
-            const map = document.getElementById('map');
             const chunkEl = document.createElement('div');
             chunkEl.className = 'chunk loading';
             chunkEl.style.left = `${x * chunkPixel}px`;
@@ -587,7 +587,6 @@
         }
 
         async function update() {
-            const map = document.getElementById('map');
             map.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${zoom})`;
             // 表示範囲のチャンク計算
             const visible = getVisibleChunkRange();
@@ -618,7 +617,7 @@
             cleanupChunks(visible);
             requestAnimationFrame(update);
         }
-        document.addEventListener('wheel', function(event) {
+        map.addEventListener('wheel', function(event) {
             event.preventDefault();
             
             // wheel操作中はcentertooltipを表示
@@ -683,7 +682,7 @@
         let lastTouchCenter = null;
         let lastTouchDistance = null;
 
-        document.addEventListener('touchstart', function(event) {
+        map.addEventListener('touchstart', function(event) {
             if (event.touches.length === 2) {
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
@@ -695,10 +694,9 @@
             }
         });
 
-        document.addEventListener('touchmove', function(event) {
+        map.addEventListener('touchmove', function(event) {
             if (event.touches.length === 2) {
                 event.preventDefault();
-                hideCenterTooltip();
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
                 const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
@@ -761,14 +759,14 @@
                 showCenterTooltip();
             }
         }, { passive: false });
-            document.addEventListener('touchend', function(event) {
-                prev_mouse_pos = null;
-                lastTouchCenter = null;
-                lastTouchDistance = null;
-                hideCenterTooltip();
-                updateURLHash();
-            });
-        document.addEventListener('mousemove', function(event) {
+        map.addEventListener('touchend', function(event) {
+            prev_mouse_pos = null;
+            lastTouchCenter = null;
+            lastTouchDistance = null;
+            hideCenterTooltip();
+            updateURLHash();
+        });
+        map.addEventListener('mousemove', function(event) {
             mouse_pos.x = event.clientX;
             mouse_pos.y = event.clientY;
             
