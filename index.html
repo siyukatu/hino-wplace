@@ -143,7 +143,8 @@
         const fetchQueue = [];
         const MAX_CONCURRENT_FETCH = 50;
 
-        // 座標表示の更新
+        // 座標表示の更新（変化があった場合のみ）
+        let lastDisplayedPosition = null;
         function updatePositionDisplay() {
             const map_pos = { x: 0, y: 0 };
             // チャンク座標系に変換（Minecraft座標）
@@ -152,8 +153,16 @@
             // ピクセル座標をMinecraft座標に変換
             const mc_x = Math.floor(map_pos.x * 16 / chunkPixel);
             const mc_y = Math.floor(map_pos.y * 16 / chunkPixel);
-            const position = document.getElementById('position');
-            position.innerText = `MC: (${mc_x}, ${mc_y}) Zoom: ${zoom.toFixed(2)}`;
+            const zoomRounded = Math.round(zoom * 100) / 100; // 小数点以下2桁で丸める
+            
+            const currentPosition = `MC: (${mc_x}, ${mc_y}) Zoom: ${zoomRounded.toFixed(2)}`;
+            
+            // 前回と同じ内容の場合は更新しない
+            if (lastDisplayedPosition !== currentPosition) {
+                const position = document.getElementById('position');
+                position.innerText = currentPosition;
+                lastDisplayedPosition = currentPosition;
+            }
         }
 
         // 画面中央のツールチップ表示
@@ -423,8 +432,6 @@
             
             // 範囲外チャンク削除
             cleanupChunks(visible);
-            // 座標表示更新
-            updatePositionDisplay();
             requestAnimationFrame(update);
         }
         document.addEventListener('wheel', function(event) {
@@ -567,6 +574,10 @@
         document.addEventListener('mousemove', function(event) {
             mouse_pos.x = event.clientX;
             mouse_pos.y = event.clientY;
+            
+            // マウス移動時に座標表示更新
+            updatePositionDisplay();
+            
             if (event.buttons === 1) {
                 if (prev_mouse_pos === null) {
                     prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
