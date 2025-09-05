@@ -9,6 +9,9 @@
     <div id="position"></div>
     <div id="tooltip"></div>
     <div id="map"></div>
+    <div id="info">
+        Mplace By <a href="https://www.youtube.com/@hino_YT" target="_blank">ヒノ</a> | Sponsored By <a href="https://vps.xserver.ne.jp/game-server/" target="_blank">Xserver</a><br>
+    </div>
     <style>
         body, html {
             margin: 0;
@@ -17,25 +20,10 @@
             height: 100%;
             overflow: hidden;
             background: #888;
+            color: #333;
+            font-family: sans-serif;
         }
-            // 1本指移動
-            if (event.touches.length === 1) {
-                event.preventDefault();
-                const touch = event.touches[0];
-                mouse_pos.x = touch.clientX;
-                mouse_pos.y = touch.clientY;
-                if (prev_mouse_pos === null) {
-                    prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
-                }
-                pos.x += (mouse_pos.x - prev_mouse_pos.x);
-                pos.y += (mouse_pos.y - prev_mouse_pos.y);
-                prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
-                
-                // ツールチップ位置更新
-                const mapX = (touch.clientX - window.innerWidth / 2 - pos.x) / zoom;
-                const mapY = (touch.clientY - window.innerHeight / 2 - pos.y) / zoom;
-                showTooltip(touch.clientX, touch.clientY, mapX, mapY);
-            }ion {
+        #position {
             position: fixed;
             top: 10px;
             left: 10px;
@@ -44,6 +32,19 @@
             padding: 5px;
             border: 1px solid #ccc;
             z-index: 1000;
+        }
+        #info {
+            position: fixed;
+            bottom: 10px;
+            left: 10px;
+            padding: 5px;
+            z-index: 1000;
+            font-size: 0.9em;
+            text-shadow: 0 0 3px rgba(255, 255, 255, 0.7);
+            > a {
+                color: currentColor;
+                text-decoration: underline;
+            }
         }
         #tooltip {
             position: fixed;
@@ -492,7 +493,7 @@
                 lastTouchCenter = currentCenter;
                 return;
             }
-            // 移動も対応
+            // 1本指移動
             if (event.touches.length === 1) {
                 event.preventDefault();
                 const touch = event.touches[0];
@@ -504,7 +505,11 @@
                 pos.x += (mouse_pos.x - prev_mouse_pos.x);
                 pos.y += (mouse_pos.y - prev_mouse_pos.y);
                 prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
-                    // update()はrequestAnimationFrameで自動呼び出しされるので不要
+                
+                // ツールチップ位置更新
+                const mapX = (touch.clientX - window.innerWidth / 2 - pos.x) / zoom;
+                const mapY = (touch.clientY - window.innerHeight / 2 - pos.y) / zoom;
+                showTooltip(touch.clientX, touch.clientY, mapX, mapY);
             }
         }, { passive: false });
             document.addEventListener('touchend', function(event) {
