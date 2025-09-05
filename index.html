@@ -338,7 +338,7 @@
             const mc_y = Math.floor(map_pos.y * 16 / chunkPixel);
             const zoomRounded = Math.round(zoom * 100) / 100; // 小数点以下2桁で丸める
             
-            const currentPosition = `MC: (${mc_x}, ${mc_y}) Zoom: ${zoomRounded.toFixed(2)}`;
+            const currentPosition = `${mc_x},${mc_y}`;
             
             // 前回と同じ内容の場合は更新しない
             if (lastDisplayedPosition !== currentPosition) {
