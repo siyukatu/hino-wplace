@@ -7,6 +7,7 @@
 </head>
 <body>
     <div id="position"></div>
+    <div id="tooltip"></div>
     <div id="map"></div>
     <style>
         body, html {
@@ -17,7 +18,24 @@
             overflow: hidden;
             background: #888;
         }
-        #position {
+            // 1本指移動
+            if (event.touches.length === 1) {
+                event.preventDefault();
+                const touch = event.touches[0];
+                mouse_pos.x = touch.clientX;
+                mouse_pos.y = touch.clientY;
+                if (prev_mouse_pos === null) {
+                    prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
+                }
+                pos.x += (mouse_pos.x - prev_mouse_pos.x);
+                pos.y += (mouse_pos.y - prev_mouse_pos.y);
+                prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
+                
+                // ツールチップ位置更新
+                const mapX = (touch.clientX - window.innerWidth / 2 - pos.x) / zoom;
+                const mapY = (touch.clientY - window.innerHeight / 2 - pos.y) / zoom;
+                showTooltip(touch.clientX, touch.clientY, mapX, mapY);
+            }ion {
             position: fixed;
             top: 10px;
             left: 10px;
@@ -26,6 +44,17 @@
             padding: 5px;
             border: 1px solid #ccc;
             z-index: 1000;
+        }
+        #tooltip {
+            position: fixed;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 3px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 1001;
+            display: none;
         }
         #map {
             position: absolute;
@@ -64,6 +93,29 @@
         const loadingChunks = new Map(); // key: chunk_key, value: AbortController
         const fetchQueue = [];
         const MAX_CONCURRENT_FETCH = 50;
+
+        // 座標表示の更新
+        function updatePositionDisplay() {
+            const map_pos = { x: 0, y: 0 };
+            map_pos.x = (mouse_pos.x - window.innerWidth / 2 - pos.x) / zoom;
+            map_pos.y = (mouse_pos.y - window.innerHeight / 2 - pos.y) / zoom;
+            const position = document.getElementById('position');
+            position.innerText = `(${Math.floor(map_pos.x)}, ${Math.floor(map_pos.y)}) Zoom: ${zoom.toFixed(2)}`;
+        }
+
+        // ツールチップ表示
+        function showTooltip(x, y, mapX, mapY) {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'block';
+            tooltip.style.left = x + 10 + 'px';
+            tooltip.style.top = y - 30 + 'px';
+            tooltip.innerText = `(${Math.floor(mapX)}, ${Math.floor(mapY)})`;
+        }
+
+        function hideTooltip() {
+            const tooltip = document.getElementById('tooltip');
+            tooltip.style.display = 'none';
+        }
 
         const colors = {
             WHITE_WOOL: "#F9FFFE",
@@ -283,6 +335,8 @@
             }
             // 範囲外チャンク削除
             cleanupChunks(visible);
+            // 座標表示更新
+            updatePositionDisplay();
             requestAnimationFrame(update);
         }
         document.addEventListener('wheel', function(event) {
@@ -380,9 +434,19 @@
             }
         }, { passive: false });
 
+        document.addEventListener('touchstart', function(event) {
+            if (event.touches.length === 1) {
+                const touch = event.touches[0];
+                const mapX = (touch.clientX - window.innerWidth / 2 - pos.x) / zoom;
+                const mapY = (touch.clientY - window.innerHeight / 2 - pos.y) / zoom;
+                showTooltip(touch.clientX, touch.clientY, mapX, mapY);
+            }
+        });
+
         document.addEventListener('touchmove', function(event) {
             if (event.touches.length === 2) {
                 event.preventDefault();
+                hideTooltip();
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
                 const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
@@ -437,11 +501,11 @@
             document.addEventListener('touchend', function(event) {
                 prev_mouse_pos = null;
                 lastTouchCenter = null;
+                hideTooltip();
                 // 2本指ズーム終了時もlastDistanceリセット
                 this.lastDistance = null;
             });
         document.addEventListener('mousemove', function(event) {
-//            console.log(event);
             mouse_pos.x = event.clientX;
             mouse_pos.y = event.clientY;
             if (event.buttons === 1) {
@@ -451,19 +515,9 @@
                 pos.x += (mouse_pos.x - prev_mouse_pos.x);
                 pos.y += (mouse_pos.y - prev_mouse_pos.y);
                 prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
-                    // update()はrequestAnimationFrameで自動呼び出しされるので不要
             } else {
                 prev_mouse_pos = null;
             }
-            // マップ上での座標も計算する
-            let mouse_map_pos = { x: 0, y: 0 };
-            const map = document.getElementById('map');
-            const rect = map.getBoundingClientRect();
-            mouse_map_pos.x = (event.clientX - rect.left - pos.x) / zoom;
-            mouse_map_pos.y = (event.clientY - rect.top - pos.y) / zoom;
-//            console.log(mouse_map_pos);
-            const position = document.getElementById('position');
-            position.innerText = `(${Math.floor(mouse_map_pos.x)}, ${Math.floor(mouse_map_pos.y)}) Zoom: ${zoom.toFixed(2)}`;
         });
     // 初回起動
     update();
