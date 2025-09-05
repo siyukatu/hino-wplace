@@ -61,7 +61,7 @@
         const chunkSize = 16;
         const chunkPixel = 128;
         const loadedChunks = new Map();
-        const loadingChunks = new Set(); // リクエスト中管理
+        const loadingChunks = new Map(); // key: chunk_key, value: AbortController
         const fetchQueue = [];
         const MAX_CONCURRENT_FETCH = 50;
 
@@ -184,17 +184,23 @@
             map.appendChild(chunkEl);
             loadedChunks.set(key, { element: chunkEl, data: null });
             // キューに追加
-            fetchQueue.push({ key, chunkEl, x, y });
+            fetchQueue.push({ key, chunkEl, x, y, retryCount: 0 });
             processFetchQueue();
         }
 
         async function processFetchQueue() {
             if (loadingChunks.size >= MAX_CONCURRENT_FETCH) return;
             if (fetchQueue.length === 0) return;
-            const { key, chunkEl, x, y } = fetchQueue.shift();
-            loadingChunks.add(key);
+            const { key, chunkEl, x, y, retryCount } = fetchQueue.shift();
+            
+            // AbortController作成
+            const abortController = new AbortController();
+            loadingChunks.set(key, abortController);
+            
             try {
-                const res = await fetch(`/mapfiles/${key}.json`);
+                const res = await fetch(`/mapfiles/${key}.json`, {
+                    signal: abortController.signal
+                });
                 chunkEl.classList.remove('loading');
                 let data = null;
                 try {
@@ -203,24 +209,40 @@
                 if (data === null) {
                     data = new Array(chunkSize * chunkSize).fill(0);
                 }
-                loadedChunks.get(key).data = data;
-                for (let by = 0; by < chunkSize; by++) {
-                    for (let bx = 0; bx < chunkSize; bx++) {
-                        const idx = by * chunkSize + bx;
-                        const blockType = data[idx];
-                        if (!blockType || blockType === 0) continue;
-                        const block = document.createElement('div');
-                        block.className = 'block';
-                        block.style.gridColumn = bx + 1;
-                        block.style.gridRow = by + 1;
-                        block.style.background = colors[blockType] || '#7FB238';
-                        chunkEl.appendChild(block);
+                const chunkData = loadedChunks.get(key);
+                if (chunkData) {
+                    chunkData.data = data;
+                    for (let by = 0; by < chunkSize; by++) {
+                        for (let bx = 0; bx < chunkSize; bx++) {
+                            const idx = by * chunkSize + bx;
+                            const blockType = data[idx];
+                            if (!blockType || blockType === 0) continue;
+                            const block = document.createElement('div');
+                            block.className = 'block';
+                            block.style.gridColumn = bx + 1;
+                            block.style.gridRow = by + 1;
+                            block.style.background = colors[blockType] || '#7FB238';
+                            chunkEl.appendChild(block);
+                        }
                     }
                 }
             } catch (e) {
-                chunkEl.remove();
-                loadedChunks.delete(key);
-                // 失敗時は再度キューに入れない（無限ループ防止）
+                if (e.name === 'AbortError') {
+                    // abort時は再試行しない
+                    if (loadedChunks.has(key)) {
+                        chunkEl.remove();
+                        loadedChunks.delete(key);
+                    }
+                } else {
+                    // 失敗時は再試行（最大3回）
+                    if (retryCount < 3) {
+                        fetchQueue.unshift({ key, chunkEl, x, y, retryCount: retryCount + 1 });
+                    } else {
+                        // 最大試行回数に達したら削除
+                        chunkEl.remove();
+                        loadedChunks.delete(key);
+                    }
+                }
             } finally {
                 loadingChunks.delete(key);
                 // 次のfetchを進める
@@ -232,6 +254,16 @@
             for (const [key, value] of loadedChunks.entries()) {
                 const [x, y] = key.split('_').map(Number);
                 if (x < visible.left || x > visible.right || y < visible.top || y > visible.bottom) {
+                    // 読み込み中のfetchをabort
+                    if (loadingChunks.has(key)) {
+                        loadingChunks.get(key).abort();
+                        loadingChunks.delete(key);
+                    }
+                    // キューからも削除
+                    const queueIndex = fetchQueue.findIndex(item => item.key === key);
+                    if (queueIndex !== -1) {
+                        fetchQueue.splice(queueIndex, 1);
+                    }
                     value.element.remove();
                     loadedChunks.delete(key);
                 }
