@@ -60,7 +60,10 @@
         let prev_mouse_pos = null;
         const chunkSize = 16;
         const chunkPixel = 128;
-        const loadedChunks = new Map();
+    const loadedChunks = new Map();
+    const loadingChunks = new Set(); // リクエスト中管理
+    const fetchQueue = [];
+    const MAX_CONCURRENT_FETCH = 20;
 
         const colors = {
             WHITE_WOOL: "#F9FFFE",
@@ -171,7 +174,7 @@
 
         async function loadChunk(x, y) {
             const key = `${x}_${y}`;
-            if (loadedChunks.has(key)) return;
+            if (loadedChunks.has(key) || loadingChunks.has(key)) return;
             const map = document.getElementById('map');
             const chunkEl = document.createElement('div');
             chunkEl.className = 'chunk loading';
@@ -180,6 +183,16 @@
             chunkEl.dataset.chunk = key;
             map.appendChild(chunkEl);
             loadedChunks.set(key, { element: chunkEl, data: null });
+            // キューに追加
+            fetchQueue.push({ key, chunkEl, x, y });
+            processFetchQueue();
+        }
+
+        async function processFetchQueue() {
+            if (loadingChunks.size >= MAX_CONCURRENT_FETCH) return;
+            if (fetchQueue.length === 0) return;
+            const { key, chunkEl, x, y } = fetchQueue.shift();
+            loadingChunks.add(key);
             try {
                 const res = await fetch(`/mapfiles/${key}.json`);
                 chunkEl.classList.remove('loading');
@@ -205,10 +218,15 @@
                     }
                 }
             } catch (e) {
-                ehunkEl.remove();
+                chunkEl.remove();
                 loadedChunks.delete(key);
-                loadChunk(x, y);
+                // 失敗時は再度キューに入れない（無限ループ防止）
+            } finally {
+                loadingChunks.delete(key);
+                // 次のfetchを進める
+                processFetchQueue();
             }
+        }
         }
 
         function cleanupChunks(visible) {
