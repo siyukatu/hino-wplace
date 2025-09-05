@@ -13,6 +13,23 @@
     <div id="info">
         Mplace by <a href="https://www.youtube.com/@hino_YT" target="_blank">ヒノ</a> | Sponsored by <a href="https://vps.xserver.ne.jp/game-server/" target="_blank">Xserver</a><br>
     </div>
+    <div id="ranking">
+        <h2>ランキング</h2>
+        <small>
+            ブロック設置数
+        </small>
+        <div id="ranking-list">
+            <div class="rank">
+                <img src="https://s.namemc.com/2d/skin/face.png?id=12b92a9206470fe2&amp;scale=1" class="headimg">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" fill="currentColor"><path d="M200-160v-80h560v80H200Zm0-140-51-321q-2 0-4.5.5t-4.5.5q-25 0-42.5-17.5T80-680q0-25 17.5-42.5T140-740q25 0 42.5 17.5T200-680q0 7-1.5 13t-3.5 11l125 56 125-171q-11-8-18-21t-7-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820q0 15-7 28t-18 21l125 171 125-56q-2-5-3.5-11t-1.5-13q0-25 17.5-42.5T820-740q25 0 42.5 17.5T880-680q0 25-17.5 42.5T820-620q-2 0-4.5-.5t-4.5-.5l-51 321H200Z" class="crown"></path></svg>
+                <div class="details">
+                    <h3>siyukatu</h3>
+                    <div class="graph">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     <style>
         body, html {
             margin: 0;
@@ -31,13 +48,14 @@
             position: fixed;
             top: 10px;
             left: 10px;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.75);
             box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
             backdrop-filter: blur(10px);
             padding: 5px 10px;
-            border: 1px solid #aaa;
+            /* border: 1px solid #aaa; */
+            border-radius: 2.5px;
             font-size: 0.8em;
-            color: #ccc;
+            color: #fff;
             z-index: 1000;
         }
         #info {
@@ -57,6 +75,76 @@
             > a {
                 color: currentColor;
                 text-decoration: underline;
+            }
+        }
+        #ranking {
+            position: fixed;
+            top: 0;
+            right: 0;
+            background: rgba(0,0,0,0.65);
+            box-shadow: 0 0 10px #0005;
+            color: #fff;
+            box-sizing: border-box;
+            width: 300px;
+            height: 100%;
+            padding: 10px 12.5px;
+            > h2 {
+                all: unset;
+                font-size: 1.1em;
+                display: block;
+            }
+            > small {
+                font-size: 0.8em;
+                display: flex;
+                gap: 0.5px;
+            }
+            > #ranking-list {
+                > .rank {
+                    position: relative;
+                    margin-top: 5px;
+                    display: flex;
+                    padding: 7.5px;
+                    background: #0007;
+                    border-radius: 3px;
+                    > .crown {
+                        position: absolute;
+                        top: -10px;
+                        left: -10px;
+                        width: 1.5em;
+                        height: 1.5em;
+                        fill: gold;
+                        transform: rotate(15deg);
+                    }
+                    > .headimg {
+                        height: 2.5em;
+                        aspect-ratio: 1;
+                        image-rendering: pixelated;
+                        border: solid 1px #555;
+                    }
+                    > .details {
+                        margin-left: 7.5px;
+                        flex-grow: 1;
+                        display: flex;
+                        flex-direction: column;
+                        > h3 {
+                            all: unset;
+                            display: block;
+                            font-size: 0.9em;
+                        }
+                        > .graph {
+                            display: flex;
+                            border-bottom: solid 1px #ccc;
+                            margin: 2px 0 0 0;
+                            flex-grow: 1;
+                            gap: 4px;
+                            > .stick {
+                                background: #fff;
+                                width: 100%;
+                                margin-top: auto;
+                            }
+                        }
+                    }
+                }
             }
         }
         #center-pointer {
