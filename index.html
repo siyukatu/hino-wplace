@@ -462,7 +462,7 @@
         let gestureStartPos = { x: 0, y: 0 };
         let gestureCenter = { x: 0, y: 0 };
 
-        document.addEventListener('gesturestart', function(event) {
+/*        document.addEventListener('gesturestart', function(event) {
             event.preventDefault();
             gestureStartScale = zoom;
             gestureStartPos = { x: pos.x, y: pos.y };
@@ -498,7 +498,7 @@
                 pos.x = gestureCenter.x - mapX * zoom;
                 pos.y = gestureCenter.y - mapY * zoom;
             }
-        }, { passive: false });
+        }, { passive: false });*/
 
         document.addEventListener('touchstart', function(event) {
         });
