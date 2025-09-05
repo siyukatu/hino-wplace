@@ -514,7 +514,7 @@
             loadingChunks.set(key, abortController);
             
             try {
-                const res = await fetch(`/mapfiles/${key}.json`, {
+                const res = await fetch(`/data/mapfiles/${key}.json`, {
                     signal: abortController.signal
                 });
                 chunkEl.classList.remove('loading');
