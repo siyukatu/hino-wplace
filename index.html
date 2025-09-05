@@ -7,7 +7,6 @@
 </head>
 <body>
     <div id="position"></div>
-    <div id="tooltip"></div>
     <div id="center-pointer"></div>
     <div id="center-tooltip"></div>
     <div id="map"></div>
@@ -37,8 +36,6 @@
             padding: 5px;
             border: 1px solid #ccc;
             z-index: 1000;
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
         }
         #info {
             position: fixed;
@@ -49,8 +46,11 @@
             font-size: 0.8em;
             color: #fff;
             text-shadow: 0 0 2px rgba(0,0,0,0.5);
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
+            opacity: 0.7;
+            transition: opacity 0.3s ease;
+            &:hover {
+                opacity: 1.0;
+            }
             > a {
                 color: currentColor;
                 text-decoration: underline;
@@ -285,7 +285,7 @@
             };
         }
 
-        async function loadChunk(x, y) {
+        async function loadChunk(x, y, priority = 0) {
             const key = `${x}_${y}`;
             if (loadedChunks.has(key) || loadingChunks.has(key)) return;
             const map = document.getElementById('map');
@@ -296,15 +296,25 @@
             chunkEl.dataset.chunk = key;
             map.appendChild(chunkEl);
             loadedChunks.set(key, { element: chunkEl, data: null });
-            // キューに追加
-            fetchQueue.push({ key, chunkEl, x, y, retryCount: 0 });
+            // 優先度付きでキューに追加
+            const chunkData = { key, chunkEl, x, y, retryCount: 0, priority };
+            
+            // 優先度に基づいて挿入位置を決定
+            let insertIndex = fetchQueue.length;
+            for (let i = 0; i < fetchQueue.length; i++) {
+                if (fetchQueue[i].priority > priority) {
+                    insertIndex = i;
+                    break;
+                }
+            }
+            fetchQueue.splice(insertIndex, 0, chunkData);
             processFetchQueue();
         }
 
         async function processFetchQueue() {
             if (loadingChunks.size >= MAX_CONCURRENT_FETCH) return;
             if (fetchQueue.length === 0) return;
-            const { key, chunkEl, x, y, retryCount } = fetchQueue.shift();
+            const { key, chunkEl, x, y, retryCount, priority } = fetchQueue.shift();
             
             // AbortController作成
             const abortController = new AbortController();
@@ -347,9 +357,9 @@
                         loadedChunks.delete(key);
                     }
                 } else {
-                    // 失敗時は再試行（最大3回）
+                    // 失敗時は再試行（最大3回）優先度を保持
                     if (retryCount < 3) {
-                        fetchQueue.unshift({ key, chunkEl, x, y, retryCount: retryCount + 1 });
+                        fetchQueue.unshift({ key, chunkEl, x, y, retryCount: retryCount + 1, priority });
                     } else {
                         // 最大試行回数に達したら削除
                         chunkEl.remove();
@@ -388,12 +398,29 @@
             map.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${zoom})`;
             // 表示範囲のチャンク計算
             const visible = getVisibleChunkRange();
-            // 必要なチャンクだけ描画・fetch
+            
+            // 画面中央のチャンク座標計算
+            const centerChunkX = Math.floor((-pos.x) / zoom / chunkPixel);
+            const centerChunkY = Math.floor((-pos.y) / zoom / chunkPixel);
+            
+            // 必要なチャンクを中央からの距離順でソート
+            const chunksToLoad = [];
             for (let cx = visible.left; cx <= visible.right; cx++) {
                 for (let cy = visible.top; cy <= visible.bottom; cy++) {
-                    loadChunk(cx, cy);
+                    const distance = Math.sqrt(Math.pow(cx - centerChunkX, 2) + Math.pow(cy - centerChunkY, 2));
+                    chunksToLoad.push({ x: cx, y: cy, distance: distance });
                 }
             }
+            
+            // 距離順でソート（近いものから優先）
+            chunksToLoad.sort((a, b) => a.distance - b.distance);
+            
+            // ソートされた順序でチャンクをロード（優先度付き）
+            for (let i = 0; i < chunksToLoad.length; i++) {
+                const chunk = chunksToLoad[i];
+                loadChunk(chunk.x, chunk.y, chunk.distance);
+            }
+            
             // 範囲外チャンク削除
             cleanupChunks(visible);
             // 座標表示更新
@@ -418,7 +445,7 @@
                     zoom -= event.deltaY * 0.01;
                 }
                 if (zoom < 0.25) zoom = 0.25;
-                if (zoom > 10) zoom = 10;
+                if (zoom > 3.5) zoom = 3.5;
                 
                 pos.x = centerScreenX - mapX * zoom;
                 pos.y = centerScreenY - mapY * zoom;
@@ -442,7 +469,7 @@
                         zoom -= event.deltaY * 0.005;
                     }
                     if (zoom < 0.25) zoom = 0.25;
-                    if (zoom > 10) zoom = 10;
+                    if (zoom > 3.5) zoom = 3.5;
                     
                     pos.x = centerScreenX - mapX * zoom;
                     pos.y = centerScreenY - mapY * zoom;
@@ -555,8 +582,8 @@
                 hideCenterTooltip();
             }
         });
-    // 初回起動
-    update();
+        // 初回起動
+        update();
     </script>
 </body>
 </html>
