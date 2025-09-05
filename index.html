@@ -63,7 +63,7 @@
         const loadedChunks = new Map();
         const loadingChunks = new Set(); // リクエスト中管理
         const fetchQueue = [];
-        const MAX_CONCURRENT_FETCH = 20;
+        const MAX_CONCURRENT_FETCH = 50;
 
         const colors = {
             WHITE_WOOL: "#F9FFFE",
@@ -267,7 +267,7 @@
             } else {
                 zoom -= event.deltaY * 0.005;
             }
-            if (zoom < 0.1) zoom = 0.1;
+            if (zoom < 0.25) zoom = 0.25;
             if (zoom > 10) zoom = 10;
             // ズーム後、マウス位置が同じmap内の点を指すようにposを調整
             pos.x = event.clientX - rect.left - mouse_x * zoom;
@@ -289,13 +289,28 @@
                     const mouse_y = ( (touch1.clientY + touch2.clientY) / 2 - rect.top - pos.y ) / zoom;
                     const prev_zoom = zoom;
                     zoom += deltaDistance * 0.005;
-                    if (zoom < 0.1) zoom = 0.1;
-                    if (zoom > 10) zoom = 10;
+                    if (zoom < 0.25) zoom = 0.25;
+                    if (zoom > 10) zoom = 2;
                     pos.x = ( (touch1.clientX + touch2.clientX) / 2 ) - rect.left - mouse_x * zoom;
                     pos.y = ( (touch1.clientY + touch2.clientY) / 2 ) - rect.top - mouse_y * zoom;
                         // update()はrequestAnimationFrameで自動呼び出しされるので不要
                 }
                 this.lastDistance = currentDistance;
+                return;
+            }
+            // 移動も対応
+            if (event.touches.length === 1) {
+                event.preventDefault();
+                const touch = event.touches[0];
+                mouse_pos.x = touch.clientX;
+                mouse_pos.y = touch.clientY;
+                if (prev_mouse_pos === null) {
+                    prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
+                }
+                pos.x += (mouse_pos.x - prev_mouse_pos.x);
+                pos.y += (mouse_pos.y - prev_mouse_pos.y);
+                prev_mouse_pos = { x: mouse_pos.x, y: mouse_pos.y };
+                    // update()はrequestAnimationFrameで自動呼び出しされるので不要
             }
         }, { passive: false });
         document.addEventListener('mousemove', function(event) {
