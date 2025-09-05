@@ -48,9 +48,9 @@
             }
         }
         @keyframes pulse {
-            0% { background-color: #ccc; }
+            0% { background-color: #c0c0c0; }
             50% { background-color: #bbb; }
-            100% { background-color: #ccc; }
+            100% { background-color: #c0c0c0; }
         }
     </style>
     <script>
@@ -282,7 +282,7 @@
             }
         }, { passive: false });
         document.addEventListener('mousemove', function(event) {
-            console.log(event);
+//            console.log(event);
             mouse_pos.x = event.clientX;
             mouse_pos.y = event.clientY;
             if (event.buttons === 1) {
