@@ -205,7 +205,9 @@
                     }
                 }
             } catch (e) {
-            } finally {
+                ehunkEl.remove();
+                loadedChunks.delete(key);
+                loadChunk(x, y);
             }
         }
 
