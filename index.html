@@ -29,9 +29,12 @@
         }
         #map {
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) scale(1);
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            transform-origin: 0 0;
+            transform: scale(1) translate(0px, 0px);
             user-select: none;
             > .chunk {
                 position: absolute;
@@ -240,7 +243,7 @@
 
         async function update() {
             const map = document.getElementById('map');
-            map.style.transform = `translate(calc(-50% + ${pos.x}px), calc(-50% + ${pos.y}px)) scale(${zoom})`;
+            map.style.transform = `scale(${zoom}) translate(${pos.x}px, ${pos.y}px)`;
             // 表示範囲のチャンク計算
             const visible = getVisibleChunkRange();
             // 必要なチャンクだけ描画・fetch
@@ -256,11 +259,10 @@
         document.addEventListener('wheel', function(event) {
             event.preventDefault();
             const map = document.getElementById('map');
-            const rect = map.getBoundingClientRect();
             const prev_zoom = zoom;
             // ズーム中心（画面上のマウス座標）
-            const centerScreenX = event.clientX - rect.left;
-            const centerScreenY = event.clientY - rect.top;
+            const centerScreenX = event.clientX;
+            const centerScreenY = event.clientY;
             // ズーム前のmap座標
             const mapX = (centerScreenX - pos.x) / prev_zoom;
             const mapY = (centerScreenY - pos.y) / prev_zoom;
@@ -280,15 +282,14 @@
             if (event.touches.length === 2) {
                 event.preventDefault();
                 const map = document.getElementById('map');
-                const rect = map.getBoundingClientRect();
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
                 const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
                 if (this.lastDistance) {
                     const prev_zoom = zoom;
                     // ズーム中心（画面上の2指の中点）
-                    const centerScreenX = (touch1.clientX + touch2.clientX) / 2 - rect.left;
-                    const centerScreenY = (touch1.clientY + touch2.clientY) / 2 - rect.top;
+                    const centerScreenX = (touch1.clientX + touch2.clientX) / 2;
+                    const centerScreenY = (touch1.clientY + touch2.clientY) / 2;
                     // ズーム前のmap座標
                     const mapX = (centerScreenX - pos.x) / prev_zoom;
                     const mapY = (centerScreenY - pos.y) / prev_zoom;
