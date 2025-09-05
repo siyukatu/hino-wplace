@@ -274,17 +274,32 @@
             pos.y = centerScreenY - mapY * zoom;
         }, { passive: false });
         // 二本指ズームに対応
+        // タッチ用の前回位置保存
+        let lastTouchCenter = null;
+
         document.addEventListener('touchmove', function(event) {
             if (event.touches.length === 2) {
                 event.preventDefault();
                 const touch1 = event.touches[0];
                 const touch2 = event.touches[1];
                 const currentDistance = Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+                const currentCenter = {
+                    x: (touch1.clientX + touch2.clientX) / 2,
+                    y: (touch1.clientY + touch2.clientY) / 2
+                };
+                
+                // 移動処理（2本指の中点の移動）
+                if (lastTouchCenter) {
+                    pos.x += (currentCenter.x - lastTouchCenter.x);
+                    pos.y += (currentCenter.y - lastTouchCenter.y);
+                }
+                
+                // ズーム処理
                 if (this.lastDistance) {
                     const prev_zoom = zoom;
                     // ズーム中心（画面中心からの相対座標）
-                    const centerScreenX = (touch1.clientX + touch2.clientX) / 2 - window.innerWidth / 2;
-                    const centerScreenY = (touch1.clientY + touch2.clientY) / 2 - window.innerHeight / 2;
+                    const centerScreenX = currentCenter.x - window.innerWidth / 2;
+                    const centerScreenY = currentCenter.y - window.innerHeight / 2;
                     // ズーム前のmap座標
                     const mapX = (centerScreenX - pos.x) / prev_zoom;
                     const mapY = (centerScreenY - pos.y) / prev_zoom;
@@ -296,7 +311,9 @@
                     pos.x = centerScreenX - mapX * zoom;
                     pos.y = centerScreenY - mapY * zoom;
                 }
+                
                 this.lastDistance = currentDistance;
+                lastTouchCenter = currentCenter;
                 return;
             }
             // 移動も対応
@@ -316,6 +333,7 @@
         }, { passive: false });
             document.addEventListener('touchend', function(event) {
                 prev_mouse_pos = null;
+                lastTouchCenter = null;
                 // 2本指ズーム終了時もlastDistanceリセット
                 this.lastDistance = null;
             });
