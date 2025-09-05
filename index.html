@@ -225,6 +225,10 @@
         }
     </style>
     <script>
+        // 設定定数
+        const MIN_ZOOM = 0.25;
+        const MAX_ZOOM = 3.5;
+        
         let pos = { x: 0, y: 0 };
         let mouse_pos = { x: 0, y: 0 };
         let zoom = 0.5;
@@ -235,6 +239,38 @@
         const loadingChunks = new Map(); // key: chunk_key, value: AbortController
         const fetchQueue = [];
         const MAX_CONCURRENT_FETCH = 50;
+
+        // URLハッシュ管理
+        function updateURLHash() {
+            const hash = `#pos=${Math.round(pos.x)},${Math.round(pos.y)}&zoom=${zoom.toFixed(2)}`;
+            if (window.location.hash !== hash) {
+                window.history.replaceState(null, null, hash);
+            }
+        }
+
+        function loadFromURLHash() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                const params = new URLSearchParams(hash);
+                const posParam = params.get('pos');
+                const zoomParam = params.get('zoom');
+                
+                if (posParam) {
+                    const [x, y] = posParam.split(',').map(Number);
+                    if (!isNaN(x) && !isNaN(y)) {
+                        pos.x = x;
+                        pos.y = y;
+                    }
+                }
+                
+                if (zoomParam) {
+                    const zoomValue = parseFloat(zoomParam);
+                    if (!isNaN(zoomValue) && zoomValue >= MIN_ZOOM && zoomValue <= MAX_ZOOM) {
+                        zoom = zoomValue;
+                    }
+                }
+            }
+        }
 
         // 座標表示の更新（変化があった場合のみ）
         let lastDisplayedPosition = null;
@@ -544,11 +580,12 @@
                 } else {
                     zoom -= event.deltaY * 0.01;
                 }
-                if (zoom < 0.25) zoom = 0.25;
-                if (zoom > 3.5) zoom = 3.5;
+                if (zoom < MIN_ZOOM) zoom = MIN_ZOOM;
+                if (zoom > MAX_ZOOM) zoom = MAX_ZOOM;
                 
                 pos.x = centerScreenX - mapX * zoom;
                 pos.y = centerScreenY - mapY * zoom;
+                updateURLHash();
             } else {
                 // 通常のスクロール（移動 + ズーム）
                 const prev_zoom = zoom;
@@ -568,11 +605,12 @@
                     } else {
                         zoom -= event.deltaY * 0.005;
                     }
-                    if (zoom < 0.25) zoom = 0.25;
-                    if (zoom > 3.5) zoom = 3.5;
+                    if (zoom < MIN_ZOOM) zoom = MIN_ZOOM;
+                    if (zoom > MAX_ZOOM) zoom = MAX_ZOOM;
                     
                     pos.x = centerScreenX - mapX * zoom;
                     pos.y = centerScreenY - mapY * zoom;
+                    updateURLHash();
                 }
             }
         }, { passive: false });
@@ -624,14 +662,15 @@
                     const mapY = (centerScreenY - pos.y) / prev_zoom;
                     const deltaDistance = currentDistance - lastTouchDistance;
                     zoom += deltaDistance * 0.008;
-                    if (zoom < 0.25) zoom = 0.25;
-                    if (zoom > 10) zoom = 10;
+                    if (zoom < MIN_ZOOM) zoom = MIN_ZOOM;
+                    if (zoom > MAX_ZOOM) zoom = MAX_ZOOM;
                     // ズーム後も同じmap座標が同じ画面座標になるようにpos調整
                     pos.x = centerScreenX - mapX * zoom;
                     pos.y = centerScreenY - mapY * zoom;
                     
                     // ズーム処理が実行された場合のみlastDistanceを更新
                     lastTouchDistance = currentDistance;
+                    updateURLHash();
                 }
                 
                 lastTouchCenter = currentCenter;
@@ -663,6 +702,7 @@
                 lastTouchCenter = null;
                 lastTouchDistance = null;
                 hideCenterTooltip();
+                updateURLHash();
             });
         document.addEventListener('mousemove', function(event) {
             mouse_pos.x = event.clientX;
@@ -682,10 +722,18 @@
                 // ドラッグ移動中の中央座標表示
                 showCenterTooltip();
             } else {
+                if (prev_mouse_pos !== null) {
+                    // ドラッグ終了時にURL更新
+                    updateURLHash();
+                }
                 prev_mouse_pos = null;
                 hideCenterTooltip();
             }
         });
+        
+        // 初期化時にURLハッシュから状態を復元
+        loadFromURLHash();
+        
         // 初回起動
         update();
     </script>
