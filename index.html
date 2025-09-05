@@ -209,9 +209,9 @@
             // 現在のズーム前の値
             const prev_zoom = zoom;
             if (event.deltaY < 0) {
-                zoom += event.deltaY * -0.01;
+                zoom += event.deltaY * -0.005;
             } else {
-                zoom -= event.deltaY * 0.01;
+                zoom -= event.deltaY * 0.005;
             }
             if (zoom < 0.1) zoom = 0.1;
             if (zoom > 10) zoom = 10;
@@ -259,6 +259,13 @@
             } else {
                 prev_mouse_pos = null;
             }
+            // マップ上での座標も計算する
+            let mouse_map_pos = { x: 0, y: 0 };
+            const map = document.getElementById('map');
+            const rect = map.getBoundingClientRect();
+            mouse_map_pos.x = (event.clientX - rect.left - pos.x) / zoom;
+            mouse_map_pos.y = (event.clientY - rect.top - pos.y) / zoom;
+            console.log(mouse_map_pos);
         });
     // 初回起動
     update();
