@@ -91,18 +91,22 @@
         #ranking {
             position: fixed;
             top: 0;
-            right: 0;
-            background: rgba(0,0,0,0.65);
-            box-shadow: 0 0 10px #0005;
-            color: #fff;
-            box-sizing: border-box;
-            width: 300px;
+            left: 0;
+            width: 100%;
             height: 100%;
-            padding: 10px 12.5px;
+            background: rgba(0,0,0,0.65);
+            z-index: 2000;
             &:not(.show) {
                 display: none;
             }
             > .modal {
+                color: #fff;
+                background: rgba(0,0,0,0.75);
+                max-width: 300px;
+                backdrop-filter: blur(10px);
+                box-shadow: 0 0 10px #0005;
+                box-sizing: border-box;
+                margin: auto;
                 > h2 {
                     all: unset;
                     font-size: 1.1em;
