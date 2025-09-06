@@ -662,6 +662,11 @@
             // wheel操作中はcentertooltipを表示
             showCenterTooltip();
             
+            // マウスとタッチパッドの判定
+            // マウスホイール: 通常は120の倍数の離散値
+            // タッチパッド: 連続的な小さな値
+            const isTrackpad = Math.abs(event.deltaY) < 50 || event.deltaY % 1 !== 0;
+            
             // トラックパッドのピンチ操作の検出（Ctrl+wheel）
             if (event.ctrlKey) {
                 // ピンチズーム操作
@@ -682,31 +687,29 @@
                 pos.x = centerScreenX - mapX * zoom;
                 pos.y = centerScreenY - mapY * zoom;
                 updateURLHash();
+            } else if (isTrackpad) {
+                // タッチパッド: 移動操作
+                pos.x -= event.deltaX * 1;
+                pos.y -= event.deltaY * 1;
+                updateURLHash();
             } else {
-                // 通常のスクロール（移動 + ズーム）
+                // マウスホイール: ズーム操作
                 const prev_zoom = zoom;
                 const centerScreenX = event.clientX - window.innerWidth / 2;
                 const centerScreenY = event.clientY - window.innerHeight / 2;
                 const mapX = (centerScreenX - pos.x) / prev_zoom;
                 const mapY = (centerScreenY - pos.y) / prev_zoom;
                 
-                // 移動処理（deltaX, deltaYを使用）
-                pos.x -= event.deltaX * 1;
-                pos.y -= event.deltaY * 1;
-                
-                // Shiftキーでズーム
-                if (event.shiftKey) {
-                    if (event.deltaY < 0) {
-                        zoom += event.deltaY * -0.005;
-                    } else {
-                        zoom -= event.deltaY * 0.005;
-                    }
-                    if (zoom < MIN_ZOOM) zoom = MIN_ZOOM;
-                    if (zoom > MAX_ZOOM) zoom = MAX_ZOOM;
-                    
-                    pos.x = centerScreenX - mapX * zoom;
-                    pos.y = centerScreenY - mapY * zoom;
+                if (event.deltaY < 0) {
+                    zoom += 0.1; // ズームイン
+                } else {
+                    zoom -= 0.1; // ズームアウト
                 }
+                if (zoom < MIN_ZOOM) zoom = MIN_ZOOM;
+                if (zoom > MAX_ZOOM) zoom = MAX_ZOOM;
+                
+                pos.x = centerScreenX - mapX * zoom;
+                pos.y = centerScreenY - mapY * zoom;
                 updateURLHash();
             }
             
