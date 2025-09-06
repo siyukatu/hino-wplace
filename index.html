@@ -865,6 +865,61 @@
         const rankingModal = document.getElementById('ranking');
         rankingButton.addEventListener('click', function() {
             rankingModal.classList.toggle('show');
+            // 
+            if (this.abortController) {
+                this.abortController.abort();
+            }
+            this.abortController = new AbortController();
+            fetch('/data/ranking.json', { signal: this.abortController.signal })
+                .then(res => res.text())
+                .then(data => {
+                    const rankingList = document.getElementById('ranking-list');
+                    rankingList.innerHTML = '';
+                    const players = data.split('\n').map(line => {
+                        const [uuid, name, totalPlace, places] = line.split(',');
+                        return { uuid, name, score: parseInt(totalPlace), scoreHistory: places.split('|').map(p => parseInt(p)) };
+                    }).filter(p => p.uuid && p.name);
+                    players.sort((a, b) => b.score - a.score);
+                    players.forEach((player, index) => {
+                        const rankEl = document.createElement('div');
+                        rankEl.className = 'rank';
+                        if (index === 0) {
+                            const crown = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                            crown.setAttribute('viewBox', '0 0 64 64');
+                            crown.classList.add('crown');
+                            crown.innerHTML = '<path d="M32 4l6 12 14-4-4 14 12 6-12 6 4 14-14-4-6 12-6-12-14 4 4-14-12-6 12-6-4-14 14 4z"/>';
+                            rankEl.appendChild(crown);
+                        }
+                        const headimg = document.createElement('img');
+                        headimg.className = 'headimg';
+                        headimg.src = `https://mc-heads.net/avatar/${player.uuid}/64`;
+                        rankEl.appendChild(headimg);
+                        const details = document.createElement('div');
+                        details.className = 'details';
+                        const nameEl = document.createElement('h3');
+                        nameEl.innerText = player.name;
+                        details.appendChild(nameEl);
+                        const graph = document.createElement('div');
+                        graph.className = 'graph';
+                        const maxScore = player.score || 1;
+                        for (let i = 0; i < 14; i++) {
+                            const stick = document.createElement('div');
+                            stick.className = 'stick';
+                            const stickHeight = (player.score / maxScore) * 100;
+                            stick.style.height = `${stickHeight}%`;
+                            graph.appendChild(stick);
+                        }
+                        details.appendChild(graph);
+                        rankEl.appendChild(details);
+                        rankingList.appendChild(rankEl);
+                    });
+                }).catch(err => {
+                    if (err.name === 'AbortError') {
+                        // abort時は無視
+                    } else {
+                        console.error('Failed to load ranking:', err);
+                    }
+                });
         });
         rankingModal.addEventListener('click', function(event) {
             if (event.target === rankingModal) {
