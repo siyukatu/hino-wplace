@@ -10,9 +10,9 @@
     <div id="center-pointer"></div>
     <div id="center-tooltip"></div>
     <div id="map"></div>
-    <div id="info">
+    <h1 id="info">
         Mplace by <a href="https://www.youtube.com/@hino_YT" target="_blank">ヒノ</a> | Sponsored by <a href="https://vps.xserver.ne.jp/game-server/" target="_blank">Xserver</a><br>
-    </div>
+    </h1>
     <div id="ranking">
         <h2>ランキング</h2>
         <small>
@@ -30,6 +30,10 @@
             </div>
         </div>
     </div>
+    <button id="ranking-button">
+        <svg xmlns="http://www.w3.org/2000/svg" height="1.2em" viewBox="0 -960 960 960" width="1.2em" fill="currentColor"><path d="M280-120v-80h160v-124q-49-11-87.5-41.5T296-442q-75-9-125.5-65.5T120-640v-40q0-33 23.5-56.5T200-760h80v-80h400v80h80q33 0 56.5 23.5T840-680v40q0 76-50.5 132.5T664-442q-18 46-56.5 76.5T520-324v124h160v80H280Zm0-408v-152h-80v40q0 38 22 68.5t58 43.5Zm400 0q36-13 58-43.5t22-68.5v-40h-80v152Z"/></svg>
+        ランキング
+    </button>
     <div id="zoom-controls">
         <button id="zoom-in"></button>
         <button id="zoom-out"></button>
@@ -63,6 +67,7 @@
             z-index: 1000;
         }
         #info {
+            all: unset;
             position: fixed;
             bottom: 10px;
             left: 10px;
@@ -153,6 +158,24 @@
                 }
             }
         }
+        #ranking-button {
+            all: unset;
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            display: flex;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.3);
+            transition: background 0.1s ease;
+            background: rgba(0, 0, 0, 0.75);
+            color: #fff;
+            line-height: 1;
+            font-size: 0.9em;
+            padding: 0.65em 0.85em;
+            align-items: center;
+            gap: 0.15em;
+            border-radius: 3.5px;
+        }
         #zoom-controls {
             position: fixed;
             bottom: 10px;
@@ -162,6 +185,7 @@
             z-index: 1001;
             background: rgba(0,0,0,0.75);
             overflow: hidden;
+            border-radius: 3.5px;
             > button {
                 all: unset;
                 position: relative;
