@@ -875,7 +875,7 @@
                 .then(data => {
                     const rankingList = document.getElementById('ranking-list');
                     rankingList.innerHTML = '';
-                    const players = data.split('\n').map(line => {
+                    const players = data.split('\n').filter(line => line.split(',').length === 4).map(line => {
                         const [uuid, name, totalPlace, places] = line.split(',');
                         return { uuid, name, score: parseInt(totalPlace), scoreHistory: places.split('|').map(p => parseInt(p)) };
                     }).filter(p => p.uuid && p.name);
