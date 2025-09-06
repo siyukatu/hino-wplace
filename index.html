@@ -96,6 +96,7 @@
             height: 100%;
             background: rgba(0,0,0,0.65);
             z-index: 2000;
+            display: flex;
             &:not(.show) {
                 display: none;
             }
@@ -103,10 +104,12 @@
                 color: #fff;
                 background: rgba(0,0,0,0.75);
                 max-width: 300px;
+                width: 100%;
                 backdrop-filter: blur(10px);
                 box-shadow: 0 0 10px #0005;
                 box-sizing: border-box;
                 margin: auto;
+                padding: 10px 12.5px;
                 > h2 {
                     all: unset;
                     font-size: 1.1em;
@@ -852,6 +855,17 @@
             pos.x = centerScreenX - mapX * zoom;
             pos.y = centerScreenY - mapY * zoom;
             updateURLHash();
+        });
+        // ランキングモーダル
+        const rankingButton = document.getElementById('ranking-button');
+        const rankingModal = document.getElementById('ranking');
+        rankingButton.addEventListener('click', function() {
+            rankingModal.classList.toggle('show');
+        });
+        rankingModal.addEventListener('click', function(event) {
+            if (event.target === rankingModal) {
+                rankingModal.classList.remove('show');
+            }
         });
         
         // 初期化時にURLハッシュから状態を復元
