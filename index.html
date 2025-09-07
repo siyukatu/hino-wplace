@@ -123,18 +123,32 @@
                 > #ranking-list {
                     > .rank {
                         position: relative;
-                        margin-top: 5px;
+                        margin-top: 10px;
                         display: flex;
                         padding: 7.5px;
                         background: #0007;
                         border-radius: 3px;
+                        &:nth-child(1) {
+                            > .crown {
+                                fill: gold;
+                            }
+                        }
+                        &:nth-child(2) {
+                            > .crown {
+                                fill: silver;
+                            }
+                        }
+                        &:nth-child(3) {
+                            > .crown {
+                                fill: #cd7f32;
+                            }
+                        }
                         > .crown {
                             position: absolute;
                             top: -10px;
                             right: 0px;
                             width: 1.5em;
                             height: 1.5em;
-                            fill: gold;
                             transform: rotate(15deg);
                         }
                         > .headimg {
@@ -883,11 +897,11 @@
                     players.forEach((player, index) => {
                         const rankEl = document.createElement('div');
                         rankEl.className = 'rank';
-                        if (index === 0) {
+                        if (index < 3) {
                             const crown = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                            crown.setAttribute('viewBox', '0 0 64 64');
+                            crown.setAttribute('viewBox', '0 -960 960 960');
                             crown.classList.add('crown');
-                            crown.innerHTML = '<path d="M32 4l6 12 14-4-4 14 12 6-12 6 4 14-14-4-6 12-6-12-14 4 4-14-12-6 12-6-4-14 14 4z"/>';
+                            crown.innerHTML = '<path d="M200-160v-80h560v80H200Zm0-140-51-321q-2 0-4.5.5t-4.5.5q-25 0-42.5-17.5T80-680q0-25 17.5-42.5T140-740q25 0 42.5 17.5T200-680q0 7-1.5 13t-3.5 11l125 56 125-171q-11-8-18-21t-7-28q0-25 17.5-42.5T480-880q25 0 42.5 17.5T540-820q0 15-7 28t-18 21l125 171 125-56q-2-5-3.5-11t-1.5-13q0-25 17.5-42.5T820-740q25 0 42.5 17.5T880-680q0 25-17.5 42.5T820-620q-2 0-4.5-.5t-4.5-.5l-51 321H200Z"/>';
                             rankEl.appendChild(crown);
                         }
                         const headimg = document.createElement('img');
