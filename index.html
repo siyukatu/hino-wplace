@@ -302,24 +302,43 @@
             width: 0;
             height: 0;
             overflow: visible;
-            > .chunk {
+        }
+        .player {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            z-index: 1001;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            > .icon {
+                width: 2em;
+                height: 2em;
+                image-rendering: pixelated;
+                border: solid 1px #555;
+                display: flex;
+            }
+            > .info {
                 position: absolute;
-                width: 128px;
-                height: 128px;
-                display: grid;
-                grid-template-columns: repeat(16, 1fr);
-                grid-template-rows: repeat(16, 1fr);
-                background: #ddd;
-                transition: background-color 0.5s ease;
-                &.loading {
-                    animation: pulse 1s infinite;
+                background: rgba(0, 0, 0, 0.75);
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 1px 5px;
+                margin-top: 5px;
+                border-radius: 3px;
+                font-size: 0.85em;
+                color: #fff;
+                white-space: nowrap;
+                text-shadow: 0 0 2px #000a;
+                text-align: center;
+                > .name {
+                    display: block;
+                }
+                > .position {
+                    font-size: 0.7em;
+                    opacity: 0.75;
                 }
             }
-        }
-        @keyframes pulse {
-            0% { background-color: #d0d0d0; }
-            50% { background-color: #ddd; }
-            100% { background-color: #d0d0d0; }
         }
     </style>
     <script>
@@ -338,11 +357,21 @@
         const fetchQueue = [];
         const MAX_CONCURRENT_FETCH = 50;
 
+        // プレイヤー管理
+        const playerElements = new Map(); // uuid -> DOM element
+        let playerData = new Map(); // uuid -> {name, x, z}
+
         const map = document.getElementById('map');
 
         // URLハッシュ管理
         function updateURLHash() {
-            const hash = `#pos=${Math.round(pos.x)},${Math.round(pos.y)}&zoom=${zoom.toFixed(2)}`;
+            // 画面中央の座標をマインクラフト座標に変換
+            const centerX = -pos.x / zoom;
+            const centerY = -pos.y / zoom;
+            const mc_x = Math.floor(centerX * 16 / chunkPixel);
+            const mc_y = Math.floor(centerY * 16 / chunkPixel);
+            
+            const hash = `#pos=${mc_x},${mc_y}&zoom=${zoom.toFixed(2)}`;
             if (window.location.hash !== hash) {
                 window.history.replaceState(null, null, hash);
             }
@@ -355,18 +384,26 @@
                 const posParam = params.get('pos');
                 const zoomParam = params.get('zoom');
                 
-                if (posParam) {
-                    const [x, y] = posParam.split(',').map(Number);
-                    if (!isNaN(x) && !isNaN(y)) {
-                        pos.x = x;
-                        pos.y = y;
-                    }
-                }
-                
+                // 先にzoomを設定
                 if (zoomParam) {
                     const zoomValue = parseFloat(zoomParam);
                     if (!isNaN(zoomValue) && zoomValue >= MIN_ZOOM && zoomValue <= MAX_ZOOM) {
                         zoom = zoomValue;
+                    }
+                }
+                
+                // zoomが設定された後にposを計算
+                if (posParam) {
+                    const [mc_x, mc_y] = posParam.split(',').map(Number);
+                    if (!isNaN(mc_x) && !isNaN(mc_y)) {
+                        // マインクラフト座標をマップピクセル座標に変換
+                        // mc座標 -> マップピクセル座標: mc * chunkPixel / 16
+                        const mapX = (mc_x * chunkPixel) / 16;
+                        const mapY = (mc_y * chunkPixel) / 16;
+                        // マップピクセル座標をpos座標に変換（画面中央に配置）
+                        // pos = -mapPixel * zoom（画面中央が原点になるように）
+                        pos.x = -mapX * zoom;
+                        pos.y = -mapY * zoom;
                     }
                 }
             }
@@ -414,6 +451,102 @@
             const centerTooltip = document.getElementById('center-tooltip');
             centerPointer.style.display = 'none';
             centerTooltip.style.display = 'none';
+        }
+
+        // プレイヤーデータの取得
+        async function fetchPlayerData() {
+            try {
+                const response = await fetch('/data/players.txt');
+                const text = await response.text();
+                const newPlayerData = new Map();
+                
+                if (text.trim()) {
+                    const lines = text.trim().split('\n');
+                    for (const line of lines) {
+                        const [uuid, name, x, z] = line.split(',');
+                        if (uuid && name && x && z) {
+                            newPlayerData.set(uuid, {
+                                name: name,
+                                x: parseInt(x),
+                                z: parseInt(z)
+                            });
+                        }
+                    }
+                }
+                
+                playerData = newPlayerData;
+                updatePlayerDisplay();
+            } catch (error) {
+                console.warn('Failed to fetch player data:', error);
+            }
+        }
+
+        // プレイヤー表示の更新
+        function updatePlayerDisplay() {
+            const visible = getVisibleChunkRange();
+            const visibleMinX = visible.left * chunkSize;
+            const visibleMaxX = (visible.right + 1) * chunkSize;
+            const visibleMinZ = visible.top * chunkSize;
+            const visibleMaxZ = (visible.bottom + 1) * chunkSize;
+
+            // 既存のプレイヤー要素をチェック
+            for (const [uuid, element] of playerElements) {
+                if (!playerData.has(uuid)) {
+                    // プレイヤーが存在しない場合は削除
+                    element.remove();
+                    playerElements.delete(uuid);
+                }
+            }
+
+            // プレイヤーデータをチェックして表示/非表示を更新
+            for (const [uuid, player] of playerData) {
+                const isVisible = player.x >= visibleMinX && player.x <= visibleMaxX &&
+                                player.z >= visibleMinZ && player.z <= visibleMaxZ;
+
+                if (isVisible) {
+                    // 表示範囲内にいる場合
+                    let playerElement = playerElements.get(uuid);
+                    
+                    if (!playerElement) {
+                        // 新しいプレイヤー要素を作成
+                        playerElement = document.createElement('div');
+                        playerElement.className = 'player';
+                        const icon = document.createElement('img');
+                        icon.className = 'icon';
+                        icon.src = `http://mcskinapi.siyukatu.com/heads/${uuid}`;
+                        playerElement.appendChild(icon);
+                        const info = document.createElement('div');
+                        info.className = 'info';
+                        const name = document.createElement('div');
+                        name.className = 'name';
+                        name.innerText = player.name;
+                        info.appendChild(name);
+                        const position = document.createElement('div');
+                        position.className = 'position';
+                        position.innerText = `${player.x}, ${player.z}`;
+                        info.appendChild(position);
+                        playerElement.appendChild(info);
+                        document.body.appendChild(playerElement);
+                        playerElements.set(uuid, playerElement);
+                    }
+
+                    // 位置を更新
+                    const mapX = (player.x * chunkPixel) / 16;
+                    const mapZ = (player.z * chunkPixel) / 16;
+                    // マップ座標を画面座標に変換（ズームと位置を考慮）
+                    const screenX = window.innerWidth / 2 + pos.x + mapX * zoom;
+                    const screenZ = window.innerHeight / 2 + pos.y + mapZ * zoom;
+                    playerElement.style.left = `${screenX}px`;
+                    playerElement.style.top = `${screenZ}px`;
+                    playerElement.style.display = 'flex';
+                } else {
+                    // 表示範囲外にいる場合
+                    const playerElement = playerElements.get(uuid);
+                    if (playerElement) {
+                        playerElement.style.display = 'none';
+                    }
+                }
+            }
         }
 
         const colors = {
@@ -499,6 +632,10 @@
             WHITE_GLAZED_TERRACOTTA: "#F9FFFE",
             YELLOW_GLAZED_TERRACOTTA: "#FED83D",
             WATER: "#3F76E4",
+            GRASS_BLOCK: "#7FB238",
+            DIRT: "#8B4513",
+            STONE: "#888888",
+            SAND: "#FAF0C4",
         };
 
         function getVisibleChunkRange() {
@@ -526,15 +663,21 @@
         async function loadChunk(x, y, priority = 0) {
             const key = `${x}_${y}`;
             if (loadedChunks.has(key) || loadingChunks.has(key)) return;
-            const chunkEl = document.createElement('div');
-            chunkEl.className = 'chunk loading';
-            chunkEl.style.left = `${x * chunkPixel}px`;
-            chunkEl.style.top = `${y * chunkPixel}px`;
-            chunkEl.dataset.chunk = key;
-            map.appendChild(chunkEl);
-            loadedChunks.set(key, { element: chunkEl, data: null });
+            
+            // Canvas要素を作成
+            const canvas = document.createElement('canvas');
+            canvas.width = chunkPixel;
+            canvas.height = chunkPixel;
+            canvas.style.position = 'absolute';
+            canvas.style.left = `${x * chunkPixel}px`;
+            canvas.style.top = `${y * chunkPixel}px`;
+            canvas.style.imageRendering = 'pixelated'; // ピクセルアートを鮮明に表示
+            canvas.dataset.chunk = key;
+            map.appendChild(canvas);
+            
+            loadedChunks.set(key, { element: canvas, data: null, canvas: canvas });
             // 優先度付きでキューに追加
-            const chunkData = { key, chunkEl, x, y, retryCount: 0, priority };
+            const chunkData = { key, canvas, x, y, retryCount: 0, priority };
             
             // 優先度に基づいて挿入位置を決定
             let insertIndex = fetchQueue.length;
@@ -551,7 +694,7 @@
         async function processFetchQueue() {
             if (loadingChunks.size >= MAX_CONCURRENT_FETCH) return;
             if (fetchQueue.length === 0) return;
-            const { key, chunkEl, x, y, retryCount, priority } = fetchQueue.shift();
+            const { key, canvas, x, y, retryCount, priority } = fetchQueue.shift();
             
             // AbortController作成
             const abortController = new AbortController();
@@ -561,7 +704,6 @@
                 const res = await fetch(`/data/mapfiles/${key}.json`, {
                     signal: abortController.signal
                 });
-                chunkEl.classList.remove('loading');
                 let data = null;
                 try {
                     data = await res.json();
@@ -569,20 +711,25 @@
                 if (data === null) {
                     data = new Array(chunkSize * chunkSize).fill(0);
                 }
+                
                 const chunkData = loadedChunks.get(key);
-                if (chunkData) {
+                if (chunkData && canvas) {
                     chunkData.data = data;
+                    
+                    // Canvasに描画
+                    const ctx = canvas.getContext('2d');
+                    ctx.imageSmoothingEnabled = false; // ピクセルアートを鮮明に
+                    
+                    const blockSize = chunkPixel / chunkSize; // 1ブロックのピクセル数
+                    
                     for (let by = 0; by < chunkSize; by++) {
                         for (let bx = 0; bx < chunkSize; bx++) {
                             const idx = by * chunkSize + bx;
                             const blockType = data[idx];
-                            if (!blockType || blockType === 0) continue;
-                            const block = document.createElement('div');
-                            block.className = 'block';
-                            block.style.gridColumn = bx + 1;
-                            block.style.gridRow = by + 1;
-                            block.style.background = colors[blockType] || '#7FB238';
-                            chunkEl.appendChild(block);
+                            const color = colors[blockType] || '#aaa';
+                            
+                            ctx.fillStyle = color;
+                            ctx.fillRect(bx * blockSize, by * blockSize, blockSize, blockSize);
                         }
                     }
                 }
@@ -590,16 +737,16 @@
                 if (e.name === 'AbortError') {
                     // abort時は再試行しない
                     if (loadedChunks.has(key)) {
-                        chunkEl.remove();
+                        canvas.remove();
                         loadedChunks.delete(key);
                     }
                 } else {
                     // 失敗時は再試行（最大3回）優先度を保持
                     if (retryCount < 3) {
-                        fetchQueue.unshift({ key, chunkEl, x, y, retryCount: retryCount + 1, priority });
+                        fetchQueue.unshift({ key, canvas, x, y, retryCount: retryCount + 1, priority });
                     } else {
                         // 最大試行回数に達したら削除
-                        chunkEl.remove();
+                        canvas.remove();
                         loadedChunks.delete(key);
                     }
                 }
@@ -659,6 +806,10 @@
             
             // 範囲外チャンク削除
             cleanupChunks(visible);
+            
+            // プレイヤー表示更新
+            updatePlayerDisplay();
+            
             requestAnimationFrame(update);
         }
         map.addEventListener('wheel', function(event) {
@@ -875,11 +1026,11 @@
                 this.abortController.abort();
             }
             this.abortController = new AbortController();
+            const rankingList = document.getElementById('ranking-list');
             rankingList.innerHTML = '';
             fetch('/data/place_ranking.txt', { signal: this.abortController.signal })
                 .then(res => res.text())
                 .then(data => {
-                    const rankingList = document.getElementById('ranking-list');
                     const players = data.split('\n').filter(line => line.split(',').length === 4).map(line => {
                         const [uuid, name, totalPlace, places] = line.split(',');
                         return { uuid, name, score: parseInt(totalPlace), scoreHistory: places.split('|').map(p => parseInt(p)) };
@@ -897,7 +1048,7 @@
                         }
                         const headimg = document.createElement('img');
                         headimg.className = 'headimg';
-                        headimg.src = `https://mc-heads.net/avatar/${player.uuid}/64`;
+                        headimg.src = `http://mcskinapi.siyukatu.com/heads/${player.uuid}`;
                         rankEl.appendChild(headimg);
                         const details = document.createElement('div');
                         details.className = 'details';
@@ -933,8 +1084,17 @@
             }
         });
         
+        // ハッシュ変更の検知
+        window.addEventListener('hashchange', function() {
+            loadFromURLHash();
+        });
+        
         // 初期化時にURLハッシュから状態を復元
         loadFromURLHash();
+        
+        // プレイヤーデータの定期取得を開始
+        fetchPlayerData(); // 初回取得
+        setInterval(fetchPlayerData, 1000); // 毎秒取得
         
         // 初回起動
         update();
