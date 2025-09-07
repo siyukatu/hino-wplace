@@ -915,8 +915,9 @@
                         details.appendChild(nameEl);
                         const graph = document.createElement('div');
                         graph.className = 'graph';
-                        const maxScore = player.score || 1;
+                        const maxScore = max(...player.scoreHistory);
                         for (let i = 0; i < 14; i++) {
+                            const score = player.scoreHistory[i] || 0;
                             const stick = document.createElement('div');
                             stick.className = 'stick';
                             const stickHeight = (player.score / maxScore) * 100;
