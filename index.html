@@ -309,7 +309,7 @@
                 display: grid;
                 grid-template-columns: repeat(16, 1fr);
                 grid-template-rows: repeat(16, 1fr);
-                background: #7FB238;
+                background: #ddd;
                 transition: background-color 0.5s ease;
                 &.loading {
                     animation: pulse 1s infinite;
@@ -498,6 +498,7 @@
             RED_GLAZED_TERRACOTTA: "#B02E26",
             WHITE_GLAZED_TERRACOTTA: "#F9FFFE",
             YELLOW_GLAZED_TERRACOTTA: "#FED83D",
+            WATER: "#3F76E4",
         };
 
         function getVisibleChunkRange() {
@@ -874,11 +875,11 @@
                 this.abortController.abort();
             }
             this.abortController = new AbortController();
+            rankingList.innerHTML = '';
             fetch('/data/place_ranking.txt', { signal: this.abortController.signal })
                 .then(res => res.text())
                 .then(data => {
                     const rankingList = document.getElementById('ranking-list');
-                    rankingList.innerHTML = '';
                     const players = data.split('\n').filter(line => line.split(',').length === 4).map(line => {
                         const [uuid, name, totalPlace, places] = line.split(',');
                         return { uuid, name, score: parseInt(totalPlace), scoreHistory: places.split('|').map(p => parseInt(p)) };
