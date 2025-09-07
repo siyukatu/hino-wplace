@@ -870,7 +870,7 @@
                 this.abortController.abort();
             }
             this.abortController = new AbortController();
-            fetch('/data/ranking_topn.txt', { signal: this.abortController.signal })
+            fetch('/data/place_ranking.txt', { signal: this.abortController.signal })
                 .then(res => res.text())
                 .then(data => {
                     const rankingList = document.getElementById('ranking-list');
