@@ -910,7 +910,7 @@
                             const score = player.scoreHistory[i] || 0;
                             const stick = document.createElement('div');
                             stick.className = 'stick';
-                            const stickHeight = (player.score / maxScore) * 100;
+                            const stickHeight = (score / maxScore) * 100;
                             stick.style.height = `${stickHeight}%`;
                             graph.appendChild(stick);
                         }
